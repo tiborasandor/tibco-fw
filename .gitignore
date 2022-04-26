@@ -1,0 +1,5 @@
+composer.phar
+/cache/
+/vendor/
+/log/
+.DS_Store

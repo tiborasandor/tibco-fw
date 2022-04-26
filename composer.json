@@ -1,0 +1,24 @@
+{
+    "name": "sandortibor89/tibco-fw",
+    "description": "PHP Framework",
+    "type": "project",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "system\\": "system/",
+            "app\\": "app/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Tibor Sándor"
+        }
+    ],
+    "require": {
+        "php-di/php-di": "^6.3",
+        "slim/slim": "^4.10",
+        "slim/twig-view": "^3.3",
+        "monolog/monolog": "^2.4",
+        "guzzlehttp/psr7": "^2.2"
+    }
+}
