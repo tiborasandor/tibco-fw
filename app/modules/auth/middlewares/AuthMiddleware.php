@@ -21,6 +21,7 @@ class AuthMiddleware extends Middleware {
             }
         }
 
+
         $response = $handler->handle($request);
         return $response;
     }
