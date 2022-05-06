@@ -30,12 +30,19 @@ require_once $composer_autoload;
  * Create app
  */
 $app = \Slim\Factory\AppFactory::createFromContainer(new \DI\Container());
-$app->addRoutingMiddleware();
+
 
 /**
  * Container sets
  */
 $container = $app->getContainer();
+
+/**
+ * Router
+ */
+$container->set('routeparser', function(\Psr\Container\ContainerInterface $container) use ($app) {
+    return $app->getRouteCollector()->getRouteParser();
+});
 
 /**
  * Load settings to container
@@ -75,6 +82,9 @@ $container->set('log', function (\Psr\Container\ContainerInterface $container) {
     return $logger;
 });
 
+/**
+ * Twig view
+ */
 $container->set('view', function(\Psr\Container\ContainerInterface $container) {
     $settings = $container->get('settings');
 
@@ -93,7 +103,30 @@ $container->set('view', function(\Psr\Container\ContainerInterface $container) {
     return \Slim\Views\Twig::create($template_dirs, ['cache' => $cache]);
 });
 
-$app->add(\Slim\Views\TwigMiddleware::createFromContainer($app));
+/**
+ * Database
+ */
+$container->set('db', function(\Psr\Container\ContainerInterface $container) {
+    $settings = $container->get('settings')['system']['database'];
+    $db = new stdClass;
+    $capsule = new \Illuminate\Database\Capsule\Manager;
+
+    // Create Illuminate connections
+    foreach ($settings as $key => $value) {
+        $capsule->addConnection($value,$key);
+    }
+    
+    // init Illuminate db
+    $capsule->setAsGlobal();
+    $capsule->bootEloquent();
+
+    // Separate connections
+    foreach ($settings as $key => $value) {
+        $db->{$key} = $capsule->connection($key);
+    }
+    
+    return $db;
+});
 
 /**
  * Set timezone
@@ -106,8 +139,6 @@ date_default_timezone_set($container->get('settings')['system']['timezone']);
 $locale = $container->get('settings')['system']['locale'];
 putenv("LC_ALL=$locale");
 setlocale(LC_ALL, $locale);
-
-$errorMiddleware = $app->addErrorMiddleware(true, true, true, $container->get('log'));
 
 $modules = $container->get('settings')['modules'];
 array_multisort(array_column($modules, 'weight'), $modules);
@@ -122,24 +153,34 @@ foreach ($modules as $module => $params) {
         /**
          * Class aliases
          */
+        $prefix = "app\\modules\\$module";
         $class_aliases = [
-            'Psr\Http\Message\ServerRequestInterface' => "App\\Modules\\$module\\Actions\\Request",
-            'Psr\Http\Message\ResponseInterface' => "App\\Modules\\$module\\Actions\\Response",
-            'system\\Action' => "app\\modules\\$module\\actions\\Action",
-            'system\\Repository' => "app\\modules\\$module\\repositories\\Repository",
-            'system\\Factory' => "app\\modules\\$module\\factories\\Factory"
+            'Psr\\Http\\Server\\RequestHandlerInterface'    => "$prefix\\middlewares\\RequestHandler",
+            'Psr\\Http\\Message\\ServerRequestInterface'    => [
+                "$prefix\\middlewares\\Request",
+                "$prefix\\actions\\Request"
+            ],
+            'Psr\\Http\\Message\\ResponseInterface'         => "$prefix\\actions\\Response",
+            'GuzzleHttp\\Psr7\\Response'                    => "$prefix\\middlewares\\Response",
+            'system\\Middleware'                            => "$prefix\\middlewares\\Middleware",
+            'system\\Action'                                => "$prefix\\actions\\Action",
+            'system\\Repository'                            => "$prefix\\repositories\\Repository",
+            'system\\Factory'                               => "$prefix\\factories\\Factory"
         ];
 
-        foreach ($class_aliases as $original => $alias) {
-            if (!class_exists($alias, false)) {
-                class_alias($original,$alias);
+        foreach ($class_aliases as $original => $aliases) {
+            $aliases = is_array($aliases) ? $aliases : [$aliases];
+            foreach ($aliases as $alias) {
+                if (!class_exists($alias, false)) {
+                    class_alias($original,$alias);
+                }
             }
         }
 
         /**
          * Register classes
          */
-        foreach (['actions','factories','repositories'] as $type) {
+        foreach (['actions','factories','repositories','middlewares'] as $type) {
             $dir = $module_dir.DS.$type;
             if (is_dir($dir)) {
                 $files = array_diff(scandir($dir), ['.', '..']);
@@ -149,9 +190,13 @@ foreach ($modules as $module => $params) {
                         $class_name = $file_info['filename'];
                         $class = "app\modules\\$module\\$type\\$class_name";
                         $container_name = "@$module\\$type\\$class_name";
-                        $container->set($container_name, function (\Psr\Container\ContainerInterface $container) use ($class) {
-                            return new $class($container);
-                        });
+                        if ($type === 'middlewares') {
+                            $app->add(new $class($container));
+                        } else {
+                            $container->set($container_name, function (\Psr\Container\ContainerInterface $container) use ($class) {
+                                return new $class($container);
+                            });
+                        }
                     }
                 }
             }
@@ -189,5 +234,19 @@ foreach ($modules as $module => $params) {
     }
 }
 
+/**
+ * Add actual route to container
+ */
+$app->add(function (\Psr\Http\Message\ServerRequestInterface $request, \Psr\Http\Server\RequestHandlerInterface $handler) {
+    $this->set('route', function(\Psr\Container\ContainerInterface $container) use ($request) {
+        $routeContext = \Slim\Routing\RouteContext::fromRequest($request);
+        $route = $routeContext->getRoute();
+        return $route;
+    });
+    return $handler->handle($request);
+});
+
+$app->addRoutingMiddleware();
+$app->addErrorMiddleware(true, true, true, $container->get('log'));
 $app->run();
 ?>

@@ -13,9 +13,25 @@ return [
             'template_dir' => TEMPLATES_DIR,
             'cache' => false,
             'cache_dir' => CACHE_DIR.DS.'twig'
+        ],
+        'database' => [
+            'testdb' => [
+                'driver' => 'mysql',
+                'host' => 'hostname',
+                'database' => 'db_name',
+                'username' => 'db_user',
+                'password' => 'db_pass',
+                'charset'   => 'utf8',
+                'collation' => 'utf8_general_ci',
+                'prefix'    => '',
+            ]
         ]
     ],
     'modules' => [
+        'auth' => [
+            'enabled' => true,
+            'weight' => 0
+        ],
         'example' => [
             'enabled' => true,
             'weight' => 2

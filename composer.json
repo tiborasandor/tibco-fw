@@ -19,6 +19,7 @@
         "slim/slim": "^4.10",
         "slim/twig-view": "^3.3",
         "monolog/monolog": "^2.4",
-        "guzzlehttp/psr7": "^2.2"
+        "guzzlehttp/psr7": "^2.2",
+        "illuminate/database": "^9.9"
     }
 }

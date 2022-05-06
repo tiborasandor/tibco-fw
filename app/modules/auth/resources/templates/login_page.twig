@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bejelentkezés</title>
+    {{ block("stylesheets", "elements.twig") }}
+</head>
+<body class="gray-bg">
+    <div class="middle-box text-center loginscreen animated fadeInDown">
+        <div>
+            <h3>Tibco Admin</h3>
+            <p>Az admin oldal megtekintéshez bejelentkezés szükséges.</p>
+            <form class="m-t" role="form" action="index.html">
+                <div class="form-group">
+                    <input type="email" class="form-control" placeholder="E-mail cím" required="">
+                </div>
+                <div class="form-group">
+                    <input type="password" class="form-control" placeholder="Jelszó" required="">
+                </div>
+                <button type="submit" class="btn btn-primary block full-width m-b">Bejelentkezés</button>
+            </form>
+            <p class="m-t"><small>Tibco &copy; 2022</small></p>
+        </div>
+    </div>
+    {{ block("scripts", "elements.twig") }}
+</body>
+</html>
