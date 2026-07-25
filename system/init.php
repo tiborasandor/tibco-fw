@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace System;
+namespace system;
 
 /**
  * Default defines
@@ -30,103 +30,12 @@ require_once $composer_autoload;
  * Create app
  */
 $app = \Slim\Factory\AppFactory::createFromContainer(new \DI\Container());
-
+$app->setBasePath('/');
 
 /**
  * Container sets
  */
-$container = $app->getContainer();
-
-/**
- * Router
- */
-$container->set('routeparser', function(\Psr\Container\ContainerInterface $container) use ($app) {
-    return $app->getRouteCollector()->getRouteParser();
-});
-
-/**
- * Load settings to container
- */
-$container->set('settings', function (\Psr\Container\ContainerInterface $container) {
-    $app_settings = APP_DIR.DS.'settings.php';
-    if (!file_exists($app_settings)) {
-        return [];
-    } else {
-        return require_once $app_settings;
-    }
-});
-
-/**
- * Logger to container
- */
-$container->set('log', function (\Psr\Container\ContainerInterface $container) {
-    $settings = $container->get('settings')['system'];
-    $logger_settings = $settings['logger'];
-    $logger = new \Monolog\Logger($logger_settings['name']);
-    $logger->setTimezone(new \DateTimeZone($settings['timezone']));
-    $logger->useMicrosecondTimestamps(false);
-    $formatter = new \Monolog\Formatter\LineFormatter($logger_settings['format'].PHP_EOL, $logger_settings['time_format']);
-    $formatter->ignoreEmptyContextAndExtra(true);
-    // separate log files
-    $levels = $logger->getLevels();
-    foreach ($levels as $level_name => $level_number) {
-        $stream_handler = new \Monolog\Handler\StreamHandler($logger_settings['log_dir'].DS.strtolower($level_name).'_log', $level_number);
-        $stream_handler->setFormatter($formatter);
-        $filter_handler = new \Monolog\Handler\FilterHandler($stream_handler, $level_number, $level_number);
-        $logger->pushHandler($filter_handler);
-    }
-    // all log file
-    $stream_handler = new \Monolog\Handler\StreamHandler($logger_settings['log_dir'].DS.'all_log', 100);
-    $stream_handler->setFormatter($formatter);
-    $logger->pushHandler($stream_handler);
-    return $logger;
-});
-
-/**
- * Twig view
- */
-$container->set('view', function(\Psr\Container\ContainerInterface $container) {
-    $settings = $container->get('settings');
-
-    $template_dirs = [];
-    $template_dirs[] = $settings['system']['twig']['template_dir'];
-
-    foreach ($settings['modules'] as $module_name => $module_settings) {
-        $module_templates_dir = MODULES_DIR.DS.$module_name.DS.'resources'.DS.'templates';
-        if ($module_settings['enabled'] && is_dir($module_templates_dir)) {
-            $template_dirs[] = $module_templates_dir;
-        }
-    }
-
-    $cache = $settings['system']['twig']['cache'] ? $settings['system']['twig']['cache_dir'] : false;
-
-    return \Slim\Views\Twig::create($template_dirs, ['cache' => $cache]);
-});
-
-/**
- * Database
- */
-$container->set('db', function(\Psr\Container\ContainerInterface $container) {
-    $settings = $container->get('settings')['system']['database'];
-    $db = new stdClass;
-    $capsule = new \Illuminate\Database\Capsule\Manager;
-
-    // Create Illuminate connections
-    foreach ($settings as $key => $value) {
-        $capsule->addConnection($value,$key);
-    }
-    
-    // init Illuminate db
-    $capsule->setAsGlobal();
-    $capsule->bootEloquent();
-
-    // Separate connections
-    foreach ($settings as $key => $value) {
-        $db->{$key} = $capsule->connection($key);
-    }
-    
-    return $db;
-});
+require_once SYSTEM_DIR.DS.'container'.DS.'container_init.php';
 
 /**
  * Set timezone
@@ -139,6 +48,49 @@ date_default_timezone_set($container->get('settings')['system']['timezone']);
 $locale = $container->get('settings')['system']['locale'];
 putenv("LC_ALL=$locale");
 setlocale(LC_ALL, $locale);
+
+/**
+ * System class aliases
+ */
+class_alias('\system\Middleware','\system\middlewares\Middleware');
+class_alias('\Psr\Http\Message\ServerRequestInterface','\system\middlewares\Request');
+class_alias('\Psr\Http\Server\RequestHandlerInterface','\system\middlewares\RequestHandler');
+class_alias('\Slim\Http\Response','\system\middlewares\Response');
+class_alias('\system\Middleware','\app\middlewares\Middleware');
+class_alias('\Psr\Http\Message\ServerRequestInterface','\app\middlewares\Request');
+class_alias('\Psr\Http\Server\RequestHandlerInterface','\app\middlewares\RequestHandler');
+class_alias('\Slim\Http\Response','\app\middlewares\Response');
+class_alias('\Slim\Routing\RouteCollectorProxy','RouteCollectorProxy');
+
+/**
+ * Respect validator custom rules
+ */
+\Respect\Validation\ContainerRegistry::setContainer(
+    \Respect\Validation\ContainerRegistry::createContainer([
+        'respect.validation.rule_factory.namespaces' => [
+            'system\\validatorcustomrules',
+            'Respect\\Validation\\Validators',
+        ],
+    ])
+);
+
+/**
+ * System middlewares
+ */
+$middlewares[] = 'system\middlewares\RouteMiddleware';
+$middlewares[] = 'system\middlewares\SessionMiddleware';
+$middlewares[] = 'system\middlewares\CsrfMiddleware';
+
+$settingsMiddlewares = $container->get('settings')['middlewares'] ?? [];
+
+$settingsMiddlewares = array_filter($settingsMiddlewares, function($v, $k) {
+    return $v['enabled'] ?? false;
+}, ARRAY_FILTER_USE_BOTH);
+
+array_multisort(array_column($settingsMiddlewares, 'weight'), $settingsMiddlewares);
+$settingsMiddlewares = array_keys($settingsMiddlewares);
+$settingsMiddlewares = preg_filter('/^/', 'app\middlewares\\', $settingsMiddlewares);
+$middlewares = array_merge($middlewares, $settingsMiddlewares);
 
 $modules = $container->get('settings')['modules'];
 array_multisort(array_column($modules, 'weight'), $modules);
@@ -161,7 +113,7 @@ foreach ($modules as $module => $params) {
                 "$prefix\\actions\\Request"
             ],
             'Psr\\Http\\Message\\ResponseInterface'         => "$prefix\\actions\\Response",
-            'GuzzleHttp\\Psr7\\Response'                    => "$prefix\\middlewares\\Response",
+            'Slim\\Http\\Response'                          => "$prefix\\middlewares\\Response",
             'system\\Middleware'                            => "$prefix\\middlewares\\Middleware",
             'system\\Action'                                => "$prefix\\actions\\Action",
             'system\\Repository'                            => "$prefix\\repositories\\Repository",
@@ -191,7 +143,7 @@ foreach ($modules as $module => $params) {
                         $class = "app\modules\\$module\\$type\\$class_name";
                         $container_name = "@$module\\$type\\$class_name";
                         if ($type === 'middlewares') {
-                            $app->add(new $class($container));
+                            $middlewares[] = $class;
                         } else {
                             $container->set($container_name, function (\Psr\Container\ContainerInterface $container) use ($class) {
                                 return new $class($container);
@@ -234,19 +186,14 @@ foreach ($modules as $module => $params) {
     }
 }
 
-/**
- * Add actual route to container
- */
-$app->add(function (\Psr\Http\Message\ServerRequestInterface $request, \Psr\Http\Server\RequestHandlerInterface $handler) {
-    $this->set('route', function(\Psr\Container\ContainerInterface $container) use ($request) {
-        $routeContext = \Slim\Routing\RouteContext::fromRequest($request);
-        $route = $routeContext->getRoute();
-        return $route;
-    });
-    return $handler->handle($request);
-});
+foreach (array_reverse($middlewares) as $middleware) {
+    $app->add(new $middleware($container));
+}
 
 $app->addRoutingMiddleware();
-$app->addErrorMiddleware(true, true, true, $container->get('log'));
+$app->add(new \Selective\BasePath\BasePathMiddleware($app));
+$app->add(\Slim\Views\TwigMiddleware::createFromContainer($app));
+$displayErrorDetails = (bool) $container->get('settings')['system']['debug'];
+$app->addErrorMiddleware($displayErrorDetails, true, true, $container->get('log'));
 $app->run();
 ?>
