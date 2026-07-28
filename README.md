@@ -203,6 +203,24 @@ final class PageAction extends Action {
   engedélyezett modulból is elérhető (a `factory()` védett, csak Action/
   Middleware/Repository/Factory osztályból hívható).
 
+### Repository vs. Factory — konvenció
+
+A `Repository` és a `Factory` osztály jelenleg kódszinten teljesen egyforma
+(mindkettő üres, a közös `Core`-t örökli) — a kettő közti különbség tisztán
+**elnevezési konvenció**, amit érdemes betartani:
+
+- **`Repository`** — csak lekérdezés, mellékhatás nélküli művelet (pl.
+  `getName()`, `findById()`). Egy Repository-metódus hívása biztonságosan
+  megismételhető, nem módosít adatot.
+- **`Factory`** — mutáció: adatbázis `insert`/`update`/`delete`, vagy bármi
+  más, ami tényleges állapotváltozással jár.
+
+Ez a **CQS (Command Query Separation)** elve a data layerre alkalmazva: a
+metódus típusából (melyik osztályban van) egy pillantásra látszik, hogy
+biztonságos-e csak úgy meghívni, vagy módosít valamit. Mivel ezt jelenleg
+semmi nem kényszeríti ki kódszinten, ez a fejlesztői fegyelmen (és a helyes
+osztályba/metódusba való besoroláson) múlik.
+
 ## Middleware-ek
 
 A tényleges futási sorrend (elöl a legkorábban futó):
