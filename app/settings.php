@@ -13,7 +13,7 @@ return [
             'name' => 'APP',
             'format' => '[%datetime%] %level_name% %message% %context% %extra%',
             'time_format' => 'Y-m-d H:i:s',
-            'log_dir' => ROOT_DIR.DS.'log'
+            'log_dir' => LOG_DIR
         ],
         'twig' => [
             'template_dir' => TEMPLATES_DIR,

@@ -11,6 +11,7 @@ define('SYSTEM_DIR', __DIR__);
 define('ROOT_DIR', dirname(SYSTEM_DIR, 1));
 define('APP_DIR', ROOT_DIR.DS.'app');
 define('CACHE_DIR', ROOT_DIR.DS.'cache');
+define('LOG_DIR', ROOT_DIR.DS.'log');
 define('MODULES_DIR', APP_DIR.DS.'modules');
 define('RESOURCES_DIR', APP_DIR.DS.'resources');
 define('TEMPLATES_DIR', RESOURCES_DIR.DS.'templates');
@@ -25,6 +26,25 @@ if (!file_exists($composer_autoload)) {
     die('The composer autoload file ('.$composer_autoload.') load failed.');
 }
 require_once $composer_autoload;
+
+/**
+ * Load settings
+ * (needed already at this point for Tracy, before the container exists;
+ * system/container/sets/settings.php reuses this same $settings variable
+ * instead of loading the file a second time)
+ */
+$app_settings_file = APP_DIR.DS.'settings.php';
+$settings = file_exists($app_settings_file) ? require $app_settings_file : [];
+
+/**
+ * Tracy debugger
+ */
+$debug = (bool) ($settings['system']['debug'] ?? false);
+$tracyLogDir = LOG_DIR.DS.'tracy';
+if (!is_dir($tracyLogDir)) {
+    mkdir($tracyLogDir, 0775, true);
+}
+\Tracy\Debugger::enable($debug ? \Tracy\Debugger::DEVELOPMENT : \Tracy\Debugger::PRODUCTION, $tracyLogDir);
 
 /**
  * Create app
@@ -194,6 +214,9 @@ $app->addRoutingMiddleware();
 $app->add(new \Selective\BasePath\BasePathMiddleware($app));
 $app->add(\Slim\Views\TwigMiddleware::createFromContainer($app));
 $displayErrorDetails = (bool) $container->get('settings')['system']['debug'];
-$app->addErrorMiddleware($displayErrorDetails, true, true, $container->get('log'));
+$errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, true, true, $container->get('log'));
+$errorMiddleware->setDefaultErrorHandler(
+    new \system\handlers\TracyErrorHandler($app->getResponseFactory(), $container->get('log'))
+);
 $app->run();
 ?>

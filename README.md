@@ -19,6 +19,7 @@ dependency injection konténer (PHP-DI), Twig sablonrendszer, Eloquent
 - [Session és CSRF védelem](#session-és-csrf-védelem)
 - [Adatbázis](#adatbázis)
 - [Naplózás](#naplózás)
+- [Hibakezelés](#hibakezelés)
 - [Helperek](#helperek)
 - [Validáció](#validáció)
 - [Új modul létrehozása – gyors útmutató](#új-modul-létrehozása--gyors-útmutató)
@@ -292,6 +293,31 @@ készül a `log/` mappában (`debug_log`, `info_log`, ...), emellett egy
 ```php
 $this->log->info('üzenet', ['kontextus' => 'adat']);
 ```
+
+## Hibakezelés
+
+A kezeletlen kivételeket a `system\handlers\TracyErrorHandler`
+([`system/handlers/TracyErrorHandler.php`](system/handlers/TracyErrorHandler.php))
+kapja el, ami a Slim `ErrorMiddleware` alapértelmezett handlerét váltja le
+([`system/init.php`](system/init.php)). A [Tracy](https://tracy.nette.org/)
+debuggert az `APP_DEBUG` környezeti változó kapcsolja:
+
+- **`APP_DEBUG=1`**: 500-as (nem várt) hibáknál, ha a kliens HTML-t vár
+  (böngészős kérés), a válaszban megjelenik a Tracy teljes, részletes
+  "blue screen" oldala (stack trace, változók, kód-kontextus). Emellett
+  minden ilyen hibáról egy pillanatkép is mentésre kerül a `log/tracy/`
+  mappába (`.html` fájlként) — ez akkor is hasznos, ha épp egy AJAX/API
+  hívás hasal el, hiszen oda nem lehet beleírni a teljes HTML oldalt: a
+  kliens egy sima JSON hibaüzenetet kap, a részletes blue screen viszont
+  elmentve várja a `log/tracy/` mappában.
+- **`APP_DEBUG=0`**: a kliens sosem lát részletet — HTML-nél és
+  JSON/API válasznál is csak egy generikus hibaüzenetet
+  (`"Szerver hiba történt."`), miközben a hiba a naplóba
+  (`log/error_log`, `log/all_log`) és — 500-as hiba esetén — a Tracy
+  pillanatképek közé is bekerül.
+- A várt, kliens felé szánt HTTP kivételek (pl. `Slim\Exception\HttpNotFoundException`,
+  404-es útvonal) mindig a saját üzenetükkel térnek vissza, `displayErrorDetails`-től
+  függetlenül — ezekhez nem készül Tracy pillanatkép, és nem íródik ki blue screen.
 
 ## Helperek
 

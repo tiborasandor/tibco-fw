@@ -25,6 +25,7 @@
         "odan/session": "^6.5",
         "slim/http": "^1.4",
         "selective/basepath": "^2.4",
-        "respect/validation": "^3.1"
+        "respect/validation": "^3.1",
+        "tracy/tracy": "^2.10"
     }
 }
