@@ -156,15 +156,34 @@ foreach ($modules as $module => $params) {
             $dir = $module_dir.DS.$type;
             if (is_dir($dir)) {
                 $files = array_diff(scandir($dir), ['.', '..']);
-                foreach ($files as $file) {
-                    $file_info = pathinfo($dir.DS.$file);
-                    if ($file_info['extension'] == 'php') {
-                        $class_name = $file_info['filename'];
-                        $class = "app\modules\\$module\\$type\\$class_name";
-                        $container_name = "@$module\\$type\\$class_name";
-                        if ($type === 'middlewares') {
-                            $middlewares[] = $class;
-                        } else {
+
+                if ($type === 'middlewares') {
+                    // súly szerint rendezve (settings.php modules.<modul>.middlewares.<Osztaly>.weight);
+                    // akinek nincs megadva súlya, az a scandir szerinti (ábécé-) sorrendjét megtartva a végén marad
+                    $moduleMiddlewareSettings = $params['middlewares'] ?? [];
+                    $moduleMiddlewareClasses = [];
+                    foreach ($files as $file) {
+                        $file_info = pathinfo($dir.DS.$file);
+                        if ($file_info['extension'] == 'php') {
+                            $moduleMiddlewareClasses[] = $file_info['filename'];
+                        }
+                    }
+
+                    $moduleMiddlewareWeights = array_map(function($class_name) use ($moduleMiddlewareSettings) {
+                        return $moduleMiddlewareSettings[$class_name]['weight'] ?? PHP_INT_MAX;
+                    }, $moduleMiddlewareClasses);
+                    array_multisort($moduleMiddlewareWeights, $moduleMiddlewareClasses);
+
+                    foreach ($moduleMiddlewareClasses as $class_name) {
+                        $middlewares[] = "app\modules\\$module\\middlewares\\$class_name";
+                    }
+                } else {
+                    foreach ($files as $file) {
+                        $file_info = pathinfo($dir.DS.$file);
+                        if ($file_info['extension'] == 'php') {
+                            $class_name = $file_info['filename'];
+                            $class = "app\modules\\$module\\$type\\$class_name";
+                            $container_name = "@$module\\$type\\$class_name";
                             $container->set($container_name, function (\Psr\Container\ContainerInterface $container) use ($class) {
                                 return new $class($container);
                             });

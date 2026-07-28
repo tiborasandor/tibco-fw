@@ -235,7 +235,24 @@ A tényleges futási sorrend (elöl a legkorábban futó):
    sorrendbe rendezve. Alapból van egy [`RequestLogMiddleware`](app/middlewares/RequestLogMiddleware.php),
    ami minden kérést naplóz (metódus, útvonal, státuszkód, IP, futási idő).
 3. **Modulonkénti middleware-ek**, a modulok betöltési sorrendjében (szintén
-   `weight` alapján az `app/settings.php`-ben).
+   `weight` alapján az `app/settings.php`-ben). Egy modulon belül, ha
+   több middleware osztály is van a `middlewares/` mappájában, azok
+   sorrendje a modul beállításában megadható `middlewares.<Osztály>.weight`
+   szerint alakul:
+   ```php
+   'modules' => [
+       'auth' => [
+           'enabled' => true,
+           'weight' => 0,
+           'middlewares' => [
+               'AuthMiddleware' => ['weight' => 0],
+           ],
+       ],
+   ],
+   ```
+   Amelyik middleware osztályhoz nincs `weight` megadva, az a `middlewares/`
+   mappában lévő fájlnév szerinti (ábécé-) sorrendjét megtartva, a
+   súllyal rendelkezők után kerül a listába.
 
 ## Nézetek (Twig)
 
