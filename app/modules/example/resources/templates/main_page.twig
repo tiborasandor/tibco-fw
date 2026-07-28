@@ -1,33 +1,6 @@
 {% extends 'app.twig' %}
 
 {% block content %}
-    <div class="row wrapper border-bottom white-bg page-heading">
-        <div class="col-sm-4">
-            <h2>Kezdőlap</h2>
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item active">
-                    <i class="fad fa-home"></i>
-                </li>
-            </ol>
-        </div>
-        <div class="col-sm-8">
-            <div class="title-action">
-            </div>
-        </div>
-    </div>
-    <div class="wrapper wrapper-content animated fadeInRight">
-        <div class="ibox">
-            <div class="ibox-title">
-                <h5>Box címe <small>és valami leírás</small></h5>
-                <div class="ibox-tools">
-                    <a class="collapse-link">
-                        <i class="fa fa-chevron-up"></i>
-                    </a>
-                </div>
-            </div>
-            <div class="ibox-content">
-                Hello {{ name }}!
-            </div>
-        </div>
-    </div>
+    <h1>Kezdőlap</h1>
+    <p>Hello {{ name }}!</p>
 {% endblock %}

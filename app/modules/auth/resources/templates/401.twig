@@ -7,15 +7,9 @@
     <title>401</title>
     {{ block("stylesheets", "elements.twig") }}
 </head>
-<body class="gray-bg">
-    <div class="middle-box text-center animated fadeInDown">
-        <h1>401</h1>
-        <h3 class="font-bold">Nincs joga az oldal megtekintéséhez</h3>
-        <div class="error-desc">
-            Az oldal megtekintéséhez megfelelő jogosultság szükséges.<br>
-            <a href="#" class="btn btn-primary m-t">Kezdőlap</a>
-        </div>
-    </div>
+<body>
+    <h1>401</h1>
+    <p>Nincs jogosultsága az oldal megtekintéséhez.</p>
     {{ block("scripts", "elements.twig") }}
 </body>
 </html>
