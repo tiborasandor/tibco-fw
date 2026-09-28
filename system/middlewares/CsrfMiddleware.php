@@ -28,7 +28,7 @@ class CsrfMiddleware extends Middleware {
                 $response = $app->getResponseFactory()->createResponse();
                 return $response->withJson([
                     'status' => 'error',
-                    'message' => 'Invalid or expired CSRF token, please reload the page'
+                    'message' => 'Érvénytelen vagy lejárt CSRF token, töltsd újra az oldalt'
                 ], 403);
             }
 

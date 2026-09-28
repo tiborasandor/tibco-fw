@@ -21,6 +21,7 @@ dependency injection konténer (PHP-DI), Twig sablonrendszer, Eloquent
 - [Naplózás](#naplózás)
 - [Hibakezelés](#hibakezelés)
 - [Helperek](#helperek)
+- [Kivételek naplózása az action-ökben](#kivételek-naplózása-az-action-ökben)
 - [Validáció](#validáció)
 - [Új modul létrehozása – gyors útmutató](#új-modul-létrehozása--gyors-útmutató)
 - [Licenc](#licenc)
@@ -54,6 +55,8 @@ környezeti változókat (lásd [Konfiguráció](#konfiguráció)) a szerver szi
 app/
   settings.php            – teljes alkalmazás-konfiguráció
   middlewares/             – saját (nem modulhoz kötött) middleware-ek
+  helpers/                 – projekt-specifikus helperek (automatikusan betöltődnek)
+  TwigExtension.php        – projekt-specifikus Twig függvények/szűrők (opcionális)
   resources/templates/     – alap layout twig sablonok (app.twig, elements.twig)
   modules/
     <modul_neve>/
@@ -76,7 +79,7 @@ system/
     container_init.php      – a konténer szolgáltatásainak összeszedése
     sets/                    – egyenként: settings, session, router, logger, view, database, helper
   middlewares/               – rendszerszintű middleware-ek (Route, Session, Csrf)
-  helpers/                   – ArrayHelper, RequestHelper
+  helpers/                   – ArrayHelper, RequestHelper, MailHelper
   validatorcustomrules/      – saját Respect\Validation szabályok helye
 cache/                       – twig cache (gitignore-olt)
 log/                          – naplófájlok (gitignore-olt)
@@ -287,6 +290,40 @@ Elérhető Twig helper függvény: `is_active_path(route_vagy_utvonal, class = '
 – akkor adja vissza a megadott class-t, ha az aktuális route neve vagy
 útvonala illeszkedik.
 
+Elérhető Twig szűrők:
+
+- `hu_date` – szöveges magyar dátum (`{{ news.date|hu_date }}` → `2026. május 1.`),
+- `relative_date` – relatív magyar időjelölés egy héten belül (`3 órája`,
+  `tegnap`, `4 napja`), ennél régebbi dátumra a `hu_date` formátumát adja.
+
+A flash üzenetek (`odan/session` Flash) minden sablonban a `flash` változón
+érhetők el (pl. `flash.get('success')`). Ezt nem Twig globális adja, hanem a
+[`system\View`](system/View.php) fűzi be minden `render()`/`fetchBlock()`
+hívásnál, mert a view még a session elindítása előtt jön létre.
+
+### Projekt-specifikus Twig függvények
+
+Ha létezik `app/TwigExtension.php` (`app\TwigExtension` osztály, ami a
+`\Twig\Extension\AbstractExtension`-ből örököl), a keretrendszer automatikusan
+regisztrálja; a konstruktor megkapja a konténert:
+
+```php
+<?php
+namespace app;
+
+class TwigExtension extends \Twig\Extension\AbstractExtension {
+    public function __construct(private \Psr\Container\ContainerInterface $container) {}
+
+    public function getFunctions(): array {
+        return [new \Twig\TwigFunction('my_function', [$this, 'myFunction'])];
+    }
+
+    public function myFunction(): string { ... }
+}
+```
+
+Így a projekt saját Twig függvényei nem a `system/` mappába kerülnek.
+
 ## Session és CSRF védelem
 
 A session kezelést az `odan/session` csomag adja
@@ -357,20 +394,50 @@ debuggert az `APP_DEBUG` környezeti változó kapcsolja:
 ## Helperek
 
 A `$this->helper` objektumon keresztül érhetők el
-([`system/container/sets/helper.php`](system/container/sets/helper.php)):
+([`system/container/sets/helper.php`](system/container/sets/helper.php)).
+Két helyről töltődnek be automatikusan, minden `*Helper.php` fájl a nevéből
+képzett kulccsal (`MailHelper` → `$this->helper->mail`):
+
+1. **`system/helpers/`** – a keretrendszer általános helperei (`system\helpers`
+   névtér). Ide csak olyan kerüljön, ami bármelyik projektben használható.
+2. **`app/helpers/`** – a projekt saját helperei (`app\helpers` névtér). Ezek
+   töltődnek be utoljára, így egy azonos nevű app helper felülírja a
+   rendszerszintűt (pl. `app\helpers\ArrayHelper extends \system\helpers\ArrayHelper`).
+
+Minden helper a konstruktorában megkapja a konténert (akinek nincs
+konstruktora, annak nem kell vele foglalkoznia).
+
+Rendszerszintű helperek:
 
 - **`$this->helper->array`** – [`ArrayHelper`](system/helpers/ArrayHelper.php):
   tömbműveletek (pl. `stdToArray`, `firstRowToKeys`, `filterRecursive`,
   `multiSearch`, `diff`, `diffKeys`).
 - **`$this->helper->request`** – [`RequestHelper`](system/helpers/RequestHelper.php):
-  jelenleg a valódi kliens IP meghatározását tudja (`CF-Connecting-IP` →
-  `X-Forwarded-For` → `REMOTE_ADDR` sorrendben).
+  a valódi kliens IP (`getClientIp`: `CF-Connecting-IP` → `X-Forwarded-For` →
+  `REMOTE_ADDR`), a valódi séma és URL Cloudflare mögött is (`getScheme`:
+  `CF-Visitor` → `X-Forwarded-Proto` → URI; `getCurrentUrl`, `getBaseUrl`).
+- **`$this->helper->mail`** – [`MailHelper`](system/helpers/MailHelper.php):
+  HTML e-mail küldése SMTP-n (PHPMailer):
+  `send($to, $subject, $htmlBody, $textBody = null, $headers = [])`. A
+  kapcsolatot és a feladót a `settings.php` `system.mail` szekciója adja
+  (alapból a `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`,
+  `SMTP_SECURE`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` környezeti változókból).
+  Hibánál kivételt dob, a hívó kapja el.
+
+## Kivételek naplózása az action-ökben
+
+Ha egy action `catch` blokkban elkap egy kivételt és nem dobja tovább, a
+`$this->logException($th, $request)` naplózza kontextussal együtt (route,
+a request `user` attribútumából a user id, kliens IP, fájl:sor). Opcionális
+paraméterek: a naplószint (`'warning'`) és egy extra kontextus-tömb.
 
 ## Validáció
 
 A `respect/validation` csomag van bekötve, saját validációs szabályok a
 [`system/validatorcustomrules/`](system/validatorcustomrules) mappába
 kerülhetnek (a namespace már regisztrálva van az `init.php`-ban).
+Beépített szabály: `HungarianTaxNumber` (magyar adószám formátum és
+ellenőrzőszám).
 
 ## Új modul létrehozása – gyors útmutató
 

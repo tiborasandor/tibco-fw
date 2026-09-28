@@ -20,6 +20,17 @@ return [
             'cache' => false,
             'cache_dir' => CACHE_DIR.DS.'twig'
         ],
+        'mail' => [
+            // SMTP connection for $this->helper->mail (system/helpers/MailHelper.php);
+            // without a username no SMTP auth is attempted (e.g. an internal relay)
+            'host'       => getenv('SMTP_HOST') ?: 'localhost',
+            'port'       => (int) (getenv('SMTP_PORT') ?: 25),
+            'username'   => getenv('SMTP_USERNAME') ?: null,
+            'password'   => getenv('SMTP_PASSWORD') ?: null,
+            'secure'     => getenv('SMTP_SECURE') ?: null,
+            'from_email' => getenv('SMTP_FROM_EMAIL') ?: null,
+            'from_name'  => getenv('SMTP_FROM_NAME') ?: '',
+        ],
         'database' => [
             'testdb' => [
                 'driver' => 'mysql',
