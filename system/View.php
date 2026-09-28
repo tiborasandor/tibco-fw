@@ -20,16 +20,8 @@ final class View extends \Slim\Views\Twig {
     }
 
     public function render(\Psr\Http\Message\ResponseInterface $response, string $template, array $data = []): \Psr\Http\Message\ResponseInterface {
-        $templateArray = explode('/', $template);
-        if (count($templateArray) === 1) {
-            $template = '@'.explode('\\', debug_backtrace()[1]['class'])[2].'/'.$template;
-        } elseif (count($templateArray) === 2) {
-            if ($templateArray[0] === 'resources') {
-                $template = $templateArray[1];
-            } else {
-                $template = '@'.$template;
-            }
-        }
+        $callerClass = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['class'] ?? null;
+        $template = $this->resolveTemplateName($template, $callerClass);
 
         $data['flash'] = $data['flash'] ?? $this->session?->getFlash();
 
@@ -37,20 +29,26 @@ final class View extends \Slim\Views\Twig {
     }
 
     public function fetchBlock(string $template, string $block, array $data = []): string {
-        $templateArray = explode('/', $template);
-        if (count($templateArray) === 1) {
-            $template = '@'.explode('\\', debug_backtrace()[1]['class'])[2].'/'.$template;
-        } elseif (count($templateArray) === 2) {
-            if ($templateArray[0] === 'resources') {
-                $template = $templateArray[1];
-            } else {
-                $template = '@'.$template;
-            }
-        }
+        $callerClass = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['class'] ?? null;
+        $template = $this->resolveTemplateName($template, $callerClass);
 
         $data['flash'] = $data['flash'] ?? $this->session?->getFlash();
 
         return parent::fetchBlock($template, $block, $data);
+    }
+
+    private function resolveTemplateName(string $template, ?string $callerClass): string {
+        $templateArray = explode('/', $template);
+        if (count($templateArray) === 1) {
+            return '@'.explode('\\', (string) $callerClass)[2].'/'.$template;
+        } elseif (count($templateArray) === 2) {
+            if ($templateArray[0] === 'resources') {
+                return $templateArray[1];
+            }
+            return '@'.$template;
+        }
+
+        return $template;
     }
 }
 ?>

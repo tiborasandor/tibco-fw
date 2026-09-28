@@ -13,7 +13,7 @@ use \Respect\Validation\Validators\Core\Simple;
 final class HungarianTaxNumber extends Simple {
     public function isValid(mixed $input): bool {
         // format: 12345678-1-23
-        if (!preg_match('/^\d{8}-\d{1}-\d{2}$/i', $input)) {
+        if (!is_string($input) || !preg_match('/^\d{8}-\d{1}-\d{2}$/i', $input)) {
             return false;
         }
 

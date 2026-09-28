@@ -12,6 +12,10 @@ final class TwigHelperFunctions {
     }
 
     public function isActivePath(string $string, string $class = 'active'): string {
+        if ($string === '') {
+            return '';
+        }
+
         // no matched route (e.g. rendering the 404 error page)
         if (!$this->container->has('route') || $this->container->get('route') === null) {
             return '';

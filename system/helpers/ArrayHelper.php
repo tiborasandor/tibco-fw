@@ -23,9 +23,9 @@ class ArrayHelper {
      * Uses one row of an array as keys for the rest of the array's elements
      */
     public function rowToKeys($array, $row_number):array {
-        $row = array_slice($array, $row_number, 1, true);
+        $row = array_slice($array, $row_number - 1, 1, true);
+        $keys = array_map('trim', reset($row) ?: []);
 
-        $keys = array_map('trim', array_slice($array, $row_number-1, null, true));
         return array_map(function($value) use ($keys) {
             return array_combine($keys, $value);
         }, $array);
@@ -40,8 +40,10 @@ class ArrayHelper {
         $array = array_map(function($value) use ($exceptions) {
             if (is_array($value)) {
                 return $this->filterRecursive($value, $exceptions);
-            } else {
+            } elseif (is_string($value)) {
                 return trim($value);
+            } else {
+                return $value;
             }
         }, $array);
 
@@ -88,18 +90,10 @@ class ArrayHelper {
 
         $result = [];
         foreach ($searchValues as $value) {
-            // extract all keys and values
-            $keys = array_keys($array);
-            $values = array_column($array, $key);
-            $valueToKey = array_combine($keys, $values);
+            $matchingItems = array_filter($array, function($item) use ($key, $value) {
+                return is_array($item) && array_key_exists($key, $item) && $item[$key] === $value;
+            });
 
-            // select keys based on the value
-            $matchingKeys = array_keys($valueToKey, $value, true);
-
-            // select the result based on the keys
-            $matchingItems = array_intersect_key($array, array_flip($matchingKeys));
-
-            // add the results to the final array
             $result += $matchingItems;
         }
 

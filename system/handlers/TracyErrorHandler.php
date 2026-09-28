@@ -35,7 +35,7 @@ final class TracyErrorHandler implements ErrorHandlerInterface {
             $this->logger->error($exception->getMessage(), ['exception' => $exception]);
         }
 
-        // csak a nem várt (5xx) hibákról mentünk el egy Tracy blue screen pillanatképet
+        // only save a Tracy blue screen snapshot for unexpected (5xx) errors
         if ($isServerError) {
             Debugger::log($exception, ILogger::EXCEPTION);
         }

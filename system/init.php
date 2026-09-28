@@ -107,13 +107,20 @@ $settingsMiddlewares = array_filter($settingsMiddlewares, function($v, $k) {
     return $v['enabled'] ?? false;
 }, ARRAY_FILTER_USE_BOTH);
 
-array_multisort(array_column($settingsMiddlewares, 'weight'), $settingsMiddlewares);
+// entries without a weight are sorted to the end, same as for the module middlewares below
+$settingsMiddlewareWeights = array_map(function($v) {
+    return $v['weight'] ?? PHP_INT_MAX;
+}, $settingsMiddlewares);
+array_multisort($settingsMiddlewareWeights, $settingsMiddlewares);
 $settingsMiddlewares = array_keys($settingsMiddlewares);
 $settingsMiddlewares = preg_filter('/^/', 'app\middlewares\\', $settingsMiddlewares);
 $middlewares = array_merge($middlewares, $settingsMiddlewares);
 
 $modules = $container->get('settings')['modules'];
-array_multisort(array_column($modules, 'weight'), $modules);
+$moduleWeights = array_map(function($v) {
+    return $v['weight'] ?? PHP_INT_MAX;
+}, $modules);
+array_multisort($moduleWeights, $modules);
 
 /**
  * Load modules

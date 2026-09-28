@@ -24,6 +24,8 @@ class Core {
         } elseif (count($name) === 2) {
             $module = '@'.$name[0];
             $this->checkModule(substr($module, 1));
+        } else {
+            throw new \Error("Invalid repository/factory name: ".implode('/', $name));
         }
         $name = end($name);
 
