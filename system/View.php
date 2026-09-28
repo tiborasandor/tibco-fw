@@ -40,7 +40,15 @@ final class View extends \Slim\Views\Twig {
     private function resolveTemplateName(string $template, ?string $callerClass): string {
         $templateArray = explode('/', $template);
         if (count($templateArray) === 1) {
-            return '@'.explode('\\', (string) $callerClass)[2].'/'.$template;
+            $callerParts = $callerClass !== null ? explode('\\', $callerClass) : [];
+            if (($callerParts[0] ?? null) !== 'app' || ($callerParts[1] ?? null) !== 'modules' || !isset($callerParts[2])) {
+                throw new \Error(
+                    "Couldn't determine the calling module for template '$template'".
+                    " (called from ".($callerClass ?? 'unknown').") - ".
+                    "use an explicit 'module/template' or 'resources/template' name instead."
+                );
+            }
+            return '@'.$callerParts[2].'/'.$template;
         } elseif (count($templateArray) === 2) {
             if ($templateArray[0] === 'resources') {
                 return $templateArray[1];
