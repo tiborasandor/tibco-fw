@@ -70,6 +70,7 @@ app/
       resources/templates/ – a modul saját twig sablonjai
 public/
   index.php                – belépési pont
+  assets/vendor/           – Bootstrap 5 és Bootstrap Icons (lefordított fájlok)
   .htaccess                 – mod_rewrite szabály
 system/
   init.php                  – bootstrap: konténer, middleware-ek, modulok betöltése
@@ -164,9 +165,11 @@ egy minta-modult tartalmaz:
   valamint egy flash üzenetet küldő, CSRF-védett űrlap (`POST /example/flash`).
 
 A bejelentkezés, jogosultságok és hasonlók app-szintű feladatok, a keretrendszer
-nem tartalmaz rájuk modult: egy projekt saját moduljában és middleware-jeiben
-valósítja meg őket (a request `user` attribútumát pl. a
-`logException()` is felhasználja).
+nem tartalmaz rájuk kész megoldást. Mintának ott van az
+[`app/middlewares/AuthMiddleware.php`](app/middlewares/AuthMiddleware.php)
+(lásd [Middleware-ek](#middleware-ek)), az `example` modulban pedig egy demo
+be-/kijelentkezés (`POST /example/login`, `POST /example/logout`, jelszó nélkül)
+és egy védett oldal (`/example/secret`).
 
 ### Route regisztráció
 
@@ -241,8 +244,17 @@ A tényleges futási sorrend (elöl a legkorábban futó):
    (nem biztonságos HTTP metódusoknál CSRF token ellenőrzése).
 2. **Saját, app-szintű middleware-ek** (`app/middlewares/`), az
    `app/settings.php` `middlewares` szekciójában megadott `weight` szerint
-   sorrendbe rendezve. Alapból van egy [`RequestLogMiddleware`](app/middlewares/RequestLogMiddleware.php),
-   ami minden kérést naplóz (metódus, útvonal, státuszkód, IP, futási idő).
+   sorrendbe rendezve. Alapból kettő van:
+   - [`RequestLogMiddleware`](app/middlewares/RequestLogMiddleware.php): minden
+     kérést naplóz (metódus, útvonal, státuszkód, IP, futási idő).
+   - [`AuthMiddleware`](app/middlewares/AuthMiddleware.php) (minta): a
+     sessionben tárolt `user` tömböt a request `user` attribútumaként és a
+     Twig `user` változójaként teszi elérhetővé, a `settings.php`-ban
+     (`middlewares.AuthMiddleware.protected_routes`) felsorolt route-okat
+     pedig csak bejelentkezett felhasználónak engedi — különben
+     `HttpUnauthorizedException` (401-es hibaoldal vagy JSON). A
+     session-lekérdezést és a védelmi szabályt a projekt a saját igényei
+     szerint cseréli le.
 3. **Modulonkénti middleware-ek**, a modulok betöltési sorrendjében (szintén
    `weight` alapján az `app/settings.php`-ben). Egy modulon belül, ha
    több middleware osztály is van a `middlewares/` mappájában, azok
@@ -290,8 +302,11 @@ loadert használják, nem ezt a PHP-oldali logikát.
 
 Az [`app.twig`](app/resources/templates/app.twig) és
 [`elements.twig`](app/resources/templates/elements.twig) egy alap
-[Bootstrap 5](https://getbootstrap.com/) + Bootstrap Icons témát ad (CDN-ről,
-build lépés nélkül): navbar, flash üzenetek, lábléc. Az `elements.twig`
+[Bootstrap 5](https://getbootstrap.com/) + Bootstrap Icons témát ad: navbar,
+flash üzenetek, lábléc. A lefordított Bootstrap fájlok (CSS, JS bundle,
+ikonfont) helyben vannak a `public/assets/vendor/` mappában, CDN és build
+lépés nélkül; frissítéskor ezeket a fájlokat kell lecserélni az új kiadás
+`dist/` mappájából. Az `elements.twig`
 blokkjai (`stylesheets`, `navbar`, `flash`, `footer`, `scripts`) külön-külön
 cserélhetők, így tetszőleges saját frontend illeszthető be helyette. Az
 [`error.twig`](app/resources/templates/error.twig) a böngészős hibaoldal (lásd

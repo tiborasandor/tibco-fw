@@ -14,6 +14,9 @@
         {% if status == 404 %}
             <h1 class="h3 mb-3">Az oldal nem található</h1>
             <p class="text-body-secondary">A keresett oldal nem létezik, vagy elgépelted a linket.</p>
+        {% elseif status == 401 %}
+            <h1 class="h3 mb-3">Bejelentkezés szükséges</h1>
+            <p class="text-body-secondary">{{ message }}</p>
         {% elseif status >= 500 %}
             <h1 class="h3 mb-3">Hiba történt</h1>
             <p class="text-body-secondary">Valami elromlott a szerveren. Próbáld újra később.</p>

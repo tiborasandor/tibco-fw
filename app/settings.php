@@ -46,6 +46,12 @@ return [
     ],
     'middlewares' => [
         'RequestLogMiddleware' => ['enabled' => true, 'weight' => 0],
+        // example: session-based user + route protection (app/middlewares/AuthMiddleware.php)
+        'AuthMiddleware' => [
+            'enabled' => true,
+            'weight' => 1,
+            'protected_routes' => ['example_secret'],
+        ],
     ],
     'modules' => [
         'example' => [
