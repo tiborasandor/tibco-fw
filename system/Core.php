@@ -57,9 +57,19 @@ class Core {
     public function __get(string $name) {
         if ($this->container->has($name)) {
             return $this->container->get($name);
-        } else {
-            throw new \Error("Undefined in container: $name");
         }
+
+        // repository()/factory() build container keys like "@module\repositories\Name";
+        // the container only registers one for a class file that actually exists (see
+        // init.php), so a miss here always means a missing/mistyped file - point at it
+        // directly instead of a bare, easy to misread container key.
+        if (preg_match('/^@([^\\\\]+)\\\\(actions|factories|repositories)\\\\(.+)$/', $name, $m)) {
+            [, $module, $type, $class] = $m;
+            $expectedFile = MODULES_DIR.DS.$module.DS.$type.DS.$class.'.php';
+            throw new \Error("Undefined in container: $name (no matching $type class found for the '$module' module - expected file: $expectedFile)");
+        }
+
+        throw new \Error("Undefined in container: $name");
     }
 
     public function __set(string $name, mixed $value) {

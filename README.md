@@ -213,7 +213,13 @@ final class PageAction extends Action {
 - **`repository('Nev')` / `factory('Nev')`**: a saját modul repository/factory
   osztályát adja vissza; `repository('masikmodul/Nev')` formában másik,
   engedélyezett modulból is elérhető (a `factory()` védett, csak Action/
-  Middleware/Repository/Factory osztályból hívható).
+  Middleware/Repository/Factory osztályból hívható). Nem létező vagy
+  letiltott modulra hivatkozásnál egyértelmű hibát kapunk
+  (`Undefined module: ...` / `Module is disabled: ...`); ha a modul létezik
+  és engedélyezve van, de a hivatkozott osztály nem (elgépelt név, hiányzó
+  fájl), a hiba megmondja a várt fájl elérési útját is (pl. `no matching
+  repositories class found for the 'shop' module - expected file:
+  app/modules/shop/repositories/Nev.php`).
 
 ### Repository vs. Factory — konvenció
 
