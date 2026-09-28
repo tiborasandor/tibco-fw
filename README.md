@@ -483,6 +483,14 @@ Ha egy action `catch` blokkban elkap egy kivételt és nem dobja tovább, a
 a request `user` attribútumából a user id, kliens IP, fájl:sor). Opcionális
 paraméterek: a naplószint (`'warning'`) és egy extra kontextus-tömb.
 
+Projekt-szintű extra kontextust (pl. a bejelentkezett user cégének id-ja)
+egy middleware a request `logContext` attribútumába tehet, ezt minden
+`logException()` hívás hozzáveszi:
+
+```php
+$request = $request->withAttribute('logContext', ['companyId' => $companyId]);
+```
+
 ## Validáció
 
 A `respect/validation` csomag van bekötve, saját validációs szabályok a
