@@ -15,6 +15,10 @@ return [
             'time_format' => 'Y-m-d H:i:s',
             'log_dir' => LOG_DIR
         ],
+        'csrf' => [
+            // route-nevek, amelyeknél nincs CSRF ellenőrzés (pl. külső webhook, API végpont)
+            'exempt_routes' => [],
+        ],
         'twig' => [
             'template_dir' => TEMPLATES_DIR,
             'cache' => false,

@@ -10,7 +10,13 @@ class CsrfMiddleware extends Middleware {
     public function __invoke(Request $request, RequestHandler $handler):Response {
         global $app;
 
-        if (!in_array($request->getMethod(), self::SAFE_METHODS)) {
+        // routes listed by name in settings (system.csrf.exempt_routes) skip the check,
+        // e.g. webhooks or API endpoints called from outside the site
+        $routeName = $this->route ? $this->route->getName() : null;
+        $exemptRoutes = $this->settings['system']['csrf']['exempt_routes'] ?? [];
+        $isExempt = $routeName !== null && in_array($routeName, $exemptRoutes, true);
+
+        if (!$isExempt && !in_array($request->getMethod(), self::SAFE_METHODS)) {
             $sessionToken = (string) $this->session->get('csrfToken');
             $requestToken = $request->getHeaderLine('X-CSRF-Token');
 
@@ -20,7 +26,7 @@ class CsrfMiddleware extends Middleware {
 
             if (empty($sessionToken) || empty($requestToken) || !hash_equals($sessionToken, $requestToken)) {
                 $this->log->warning('invalid CSRF token', [
-                    'route'  => $this->route ? $this->route->getName() : null,
+                    'route'  => $routeName,
                     'method' => $request->getMethod(),
                     'ip'     => $this->helper->request->getClientIp($request)
                 ]);

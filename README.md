@@ -366,6 +366,22 @@ ellenőrzi a tokent az `X-CSRF-Token` fejlécben vagy a `csrfToken` request
 paraméterben; sikertelen ellenőrzésnél `403`-as JSON választ ad, és a
 próbálkozást naplózza.
 
+Kivételek: az `app/settings.php` `system.csrf.exempt_routes` listájában név
+szerint felsorolt route-oknál nincs CSRF ellenőrzés. Olyan végpontokhoz
+való, amelyeket nem a saját oldal űrlapja vagy JS-e hív (pl. külső webhook,
+API végpont), ezért nem is tudnának tokent küldeni:
+
+```php
+'system' => [
+    'csrf' => [
+        'exempt_routes' => ['payment_webhook'],
+    ],
+],
+```
+
+Ezeknél a végpontoknál a hívót más módon kell ellenőrizni (aláírás, API
+kulcs stb.), ha az szükséges.
+
 ## Adatbázis
 
 Az adatbázis-réteg az `illuminate/database` (Eloquent) csomagra épül, a
