@@ -1,6 +1,96 @@
 {% extends 'app.twig' %}
 
 {% block content %}
-    <h1>Kezdőlap</h1>
-    <p>Hello {{ name }}!</p>
+    <div class="container py-5">
+        <div class="mb-5">
+            <h1 class="display-6 fw-semibold">{{ greeting }}</h1>
+            <p class="lead text-body-secondary">
+                Ez a <code>example</code> modul kezdőoldala - a keretrendszer fő építőelemeit mutatja be.
+                A név (<strong>{{ name }}</strong>) a modul repository-jából jön, a köszöntés az
+                <code>app/helpers/ExampleHelper.php</code>-ból.
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header"><i class="bi bi-calendar3 me-1"></i> Dátum szűrők (rendszerszintű)</div>
+                    <div class="card-body">
+                        <table class="table table-sm mb-0">
+                            <thead><tr><th></th><th><code>|hu_date</code></th><th><code>|relative_date</code></th></tr></thead>
+                            <tbody>
+                                {% for label, date in dates %}
+                                    <tr>
+                                        <td class="text-body-secondary">{{ label }}</td>
+                                        <td>{{ date|hu_date }}</td>
+                                        <td>{{ date|relative_date }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header"><i class="bi bi-puzzle me-1"></i> Saját Twig függvények (<code>app/TwigExtension.php</code>)</div>
+                    <div class="card-body">
+                        <p>
+                            <code>{{ "{{ badge('új', 'success') }}" }}</code> &rarr; {{ badge('új', 'success') }}
+                        </p>
+                        <p>
+                            <code>{{ "{{ badge('béta', 'warning') }}" }}</code> &rarr; {{ badge('béta', 'warning') }}
+                        </p>
+                        <p class="mb-0">
+                            <code>{{ "{{ 1234567|huf }}" }}</code> &rarr; {{ 1234567|huf }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header"><i class="bi bi-chat-square-text me-1"></i> Flash üzenet és CSRF védelem</div>
+                    <div class="card-body">
+                        <form method="post" action="{{ url_for('example_flash') }}">
+                            <input type="hidden" name="csrfToken" value="{{ csrfToken }}">
+                            <div class="row g-2">
+                                <div class="col-sm-4">
+                                    <select class="form-select" name="type" aria-label="Típus">
+                                        {% for type in flashTypes %}
+                                            <option value="{{ type }}">{{ type }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-sm-8">
+                                    <input type="text" class="form-control" name="message" placeholder="Üzenet szövege">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-send me-1"></i> Küldés</button>
+                        </form>
+                        <p class="small text-body-secondary mt-3 mb-0">
+                            A POST kérést a <code>CsrfMiddleware</code> ellenőrzi, az action flash üzenetet ír
+                            és visszairányít; az üzenetet az <code>app.twig</code> jeleníti meg.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header"><i class="bi bi-diagram-3 me-1"></i> Hol mi van?</div>
+                    <div class="card-body">
+                        <ul class="mb-0">
+                            <li><code>app/modules/example/</code> - ez a modul (route, action, repository, sablon)</li>
+                            <li><code>app/helpers/</code> - saját helperek (<code>$this->helper->...</code>)</li>
+                            <li><code>app/TwigExtension.php</code> - saját Twig függvények és szűrők</li>
+                            <li><code>app/resources/templates/</code> - az alap elrendezés és a hibaoldal</li>
+                            <li><code>app/settings.php</code> - beállítások, modulok, middleware-ek</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

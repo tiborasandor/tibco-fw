@@ -1,9 +1,11 @@
 # tibco-fw
 
-Könnyűsúlyú, modulos felépítésű PHP 8 keretrendszer. Nem tartalmaz beépített admin
-felületet vagy frontend témát — csak a backend vázat adja: routing (Slim 4),
+Könnyűsúlyú, modulos felépítésű PHP 8 keretrendszer: routing (Slim 4),
 dependency injection konténer (PHP-DI), Twig sablonrendszer, Eloquent
 (Illuminate/Database) ORM, Monolog naplózás és egy egyszerű modul-betöltő.
+Egy alap Bootstrap 5 témával és egy bemutató (`example`) modullal érkezik;
+admin felületet, bejelentkezést vagy jogosultságkezelést nem tartalmaz —
+ezek app-szintű feladatok.
 
 ## Tartalomjegyzék
 
@@ -133,8 +135,7 @@ return [
         'RequestLogMiddleware' => ['enabled' => true, 'weight' => 0],
     ],
     'modules' => [
-        'auth'    => ['enabled' => true, 'weight' => 0],
-        'example' => ['enabled' => true, 'weight' => 2],
+        'example' => ['enabled' => true, 'weight' => 0],
     ]
 ];
 ```
@@ -154,13 +155,18 @@ return [
 
 Egy modul (`app/modules/<nev>/`) önálló funkcionális egység, saját route-okkal,
 action-ökkel, middleware-ekkel, repository-kkal és sablonokkal. A keretrendszer
-két minta-modult tartalmaz:
+egy minta-modult tartalmaz:
 
-- **`auth`** – bejelentkezési oldal (`/login`) és egy `AuthMiddleware`, ami
-  bejelentkezés-ellenőrzést demonstrál (jelenleg kikommentezett `if (0)` ággal,
-  csak vázlatnak).
-- **`example`** – egy egyszerű főoldal (`/`), ami egy `Repository`-n keresztül
-  kér le adatot, és egy Twig sablont renderel.
+- **`example`** – bemutató főoldal (`/`): adat egy `Repository`-ból, köszöntés
+  egy app helperből ([`app/helpers/ExampleHelper.php`](app/helpers/ExampleHelper.php)),
+  a rendszerszintű dátumszűrők, saját Twig függvény és szűrő
+  ([`app/TwigExtension.php`](app/TwigExtension.php): `badge()`, `|huf`),
+  valamint egy flash üzenetet küldő, CSRF-védett űrlap (`POST /example/flash`).
+
+A bejelentkezés, jogosultságok és hasonlók app-szintű feladatok, a keretrendszer
+nem tartalmaz rájuk modult: egy projekt saját moduljában és middleware-jeiben
+valósítja meg őket (a request `user` attribútumát pl. a
+`logException()` is felhasználja).
 
 ### Route regisztráció
 
@@ -244,11 +250,12 @@ A tényleges futási sorrend (elöl a legkorábban futó):
    szerint alakul:
    ```php
    'modules' => [
-       'auth' => [
+       'shop' => [
            'enabled' => true,
            'weight' => 0,
            'middlewares' => [
-               'AuthMiddleware' => ['weight' => 0],
+               'CartMiddleware'  => ['weight' => 0],
+               'StockMiddleware' => ['weight' => 1],
            ],
        ],
    ],
@@ -282,9 +289,13 @@ A `{% extends %}` és `{{ block(...) }}` Twig-oldali hivatkozások (pl.
 loadert használják, nem ezt a PHP-oldali logikát.
 
 Az [`app.twig`](app/resources/templates/app.twig) és
-[`elements.twig`](app/resources/templates/elements.twig) egy minimális, saját
-CSS/JS-t nem tartalmazó HTML vázat ad — ide illeszthető be tetszőleges saját
-frontend (statikus HTML, egy CSS keretrendszer, vagy egy külön build-elt SPA).
+[`elements.twig`](app/resources/templates/elements.twig) egy alap
+[Bootstrap 5](https://getbootstrap.com/) + Bootstrap Icons témát ad (CDN-ről,
+build lépés nélkül): navbar, flash üzenetek, lábléc. Az `elements.twig`
+blokkjai (`stylesheets`, `navbar`, `flash`, `footer`, `scripts`) külön-külön
+cserélhetők, így tetszőleges saját frontend illeszthető be helyette. Az
+[`error.twig`](app/resources/templates/error.twig) a böngészős hibaoldal (lásd
+[Hibakezelés](#hibakezelés)).
 
 Elérhető Twig helper függvény: `is_active_path(route_vagy_utvonal, class = 'active')`
 – akkor adja vissza a megadott class-t, ha az aktuális route neve vagy

@@ -1,3 +1,62 @@
-{% block stylesheets %}{% endblock %}
+{#
+    Közös építőelemek az app.twig-hez (és bármelyik sablonhoz):
+    {{ block('navbar', 'elements.twig') }}
+    A téma Bootstrap 5 + Bootstrap Icons, CDN-ről (build lépés nélkül) -
+    saját témánál ezeket a blokkokat kell lecserélni.
+#}
 
-{% block scripts %}{% endblock %}
+{% block stylesheets %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" integrity="sha384-CK2SzKma4jA5H/MXDUU7i1TqZlCFaD4T01vtyDFvPlD97JQyS+IsSh1nI2EFbpyk" crossorigin="anonymous">
+{% endblock %}
+
+{% block navbar %}
+    <nav class="navbar navbar-expand-md bg-body-tertiary border-bottom">
+        <div class="container">
+            <a class="navbar-brand fw-semibold" href="{{ url_for('main_page') }}">
+                <i class="bi bi-boxes me-1"></i> Tibco
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Menü">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNavbar">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link {{ is_active_path('main_page') }}" href="{{ url_for('main_page') }}">Kezdőlap</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+{% endblock %}
+
+{% block flash %}
+    {# odan/session Flash: típus => üzenetek; a típusnevek Bootstrap alert színekre képezve #}
+    {% set alertClasses = {'success': 'success', 'error': 'danger', 'danger': 'danger', 'warning': 'warning', 'info': 'info'} %}
+    {% set flashMessages = flash ? flash.all() : [] %}
+    {% if flashMessages is not empty %}
+        <div class="container mt-3">
+            {% for type, messages in flashMessages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ alertClasses[type] ?? 'secondary' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Bezárás"></button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block footer %}
+    <footer class="border-top py-4 mt-5">
+        <div class="container small text-body-secondary d-flex justify-content-between">
+            <span>Tibco keretrendszer</span>
+            <span>Slim 4 · PHP-DI · Twig · Bootstrap 5</span>
+        </div>
+    </footer>
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+{% endblock %}

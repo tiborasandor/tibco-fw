@@ -1,0 +1,25 @@
+{# Hibaoldal böngészős kérésekhez - a system/handlers/TracyErrorHandler.php rendereli.
+   Változók: status (HTTP kód), message. #}
+{% extends 'app.twig' %}
+
+{% set title = status ~ ' - Tibco' %}
+
+{% block head %}
+    <meta name="robots" content="noindex">
+{% endblock %}
+
+{% block content %}
+    <div class="container py-5 text-center">
+        <div class="display-1 fw-bold text-body-tertiary">{{ status }}</div>
+        {% if status == 404 %}
+            <h1 class="h3 mb-3">Az oldal nem található</h1>
+            <p class="text-body-secondary">A keresett oldal nem létezik, vagy elgépelted a linket.</p>
+        {% elseif status >= 500 %}
+            <h1 class="h3 mb-3">Hiba történt</h1>
+            <p class="text-body-secondary">Valami elromlott a szerveren. Próbáld újra később.</p>
+        {% else %}
+            <h1 class="h3 mb-3">{{ message }}</h1>
+        {% endif %}
+        <a href="{{ url_for('main_page') }}" class="btn btn-primary mt-3"><i class="bi bi-house me-1"></i> Kezdőlap</a>
+    </div>
+{% endblock %}

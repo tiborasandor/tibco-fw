@@ -1,16 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html lang="hu">
 <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrfToken }}">
-    <title>Tibco</title>
+    <title>{{ title ?? 'Tibco' }}</title>
     {{ block("stylesheets", "elements.twig") }}
     {% block head %}{% endblock %}
 </head>
-<body>
-    {% block content %}{% endblock %}
+<body class="d-flex flex-column min-vh-100">
+    {% block navbar %}{{ block("navbar", "elements.twig") }}{% endblock %}
+    {{ block("flash", "elements.twig") }}
+    <main class="flex-grow-1">
+        {% block content %}{% endblock %}
+    </main>
+    {% block footer %}{{ block("footer", "elements.twig") }}{% endblock %}
     {{ block("scripts", "elements.twig") }}
     {% block body_tail %}{% endblock %}
 </body>

@@ -48,13 +48,9 @@ return [
         'RequestLogMiddleware' => ['enabled' => true, 'weight' => 0],
     ],
     'modules' => [
-        'auth' => [
-            'enabled' => true,
-            'weight' => 0
-        ],
         'example' => [
             'enabled' => true,
-            'weight' => 2
+            'weight' => 0
         ]
     ]
 ];
