@@ -4,7 +4,7 @@ Saját PHP keretrendszer (Slim 4 + PHP-DI + Twig + Illuminate Database + odan/se
 
 ## Szerkezet és szabályok
 
-- **`system/`** – maga a keretrendszer. Erre épülő projektek: `pinceszer.hu`, `myco.support` (mindkettő a `/srv/projects/websites/` alatt); a `system/` mappát a projektek innen veszik át. Itt csak általános, bármelyik projektben használható kód lehet — projekt-specifikus dolog az adott projekt `app/` rétegébe való.
+- **`system/`** – maga a keretrendszer. A tibco-fw független minden rá épülő projekttől: itt csak általános, bármelyik projektben használható kód lehet, projektre utaló vagy projekt-specifikus dolog nem.
 - **`app/`** – minta alkalmazás: alap Bootstrap téma (`app/resources/templates/`), `example` modul, példa helper (`app/helpers/`), Twig bővítmény (`app/TwigExtension.php`) és `AuthMiddleware` (`app/middlewares/`). Új keretrendszer-funkciónál érdemes az `example` modulban bemutatni.
 - A `system/` változásai a README-ben is legyenek dokumentálva.
 - Kommentek: a `system/`-ben angolul (a meglévő stílus), az `app/`-ban magyarul.
