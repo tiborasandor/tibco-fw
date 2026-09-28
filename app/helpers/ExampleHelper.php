@@ -4,10 +4,11 @@ declare(strict_types=1);
 namespace app\helpers;
 
 /**
- * Example app-level helper: every *Helper.php in app/helpers/ is registered
- * automatically as $this->helper-><name> (ExampleHelper -> $this->helper->example).
- * The constructor receives the container - use it for settings, other
- * services, etc. (helpers that don't need it can omit the constructor).
+ * Példa app-szintű helper: az app/helpers/ mappa minden *Helper.php fájlja
+ * automatikusan regisztrálódik $this->helper-><név> néven
+ * (ExampleHelper -> $this->helper->example). A konstruktor megkapja a
+ * konténert - ezen keresztül érhetők el a beállítások, más szolgáltatások
+ * stb. (amelyik helpernek nem kell, annak konstruktor sem kell).
  */
 class ExampleHelper {
 
@@ -18,7 +19,7 @@ class ExampleHelper {
     }
 
     /**
-     * Greeting by the time of day ("Jó reggelt, Tibi!").
+     * Napszaknak megfelelő köszöntés ("Jó reggelt, Tibi!").
      */
     public function greeting(string $name): string {
         $hour = (int) (new \DateTime('now', new \DateTimeZone($this->timezone)))->format('G');

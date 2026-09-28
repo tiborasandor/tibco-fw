@@ -4,10 +4,10 @@ declare(strict_types=1);
 namespace app;
 
 /**
- * Project-specific Twig functions and filters. The framework registers this
- * class automatically if it exists (system/container/sets/view.php), so
- * project code doesn't have to go into system/TwigHelperFunctions.php.
- * The constructor receives the container.
+ * A projekt saját Twig függvényei és szűrői. A keretrendszer automatikusan
+ * regisztrálja ezt az osztályt, ha létezik (system/container/sets/view.php),
+ * így a projekt kódja nem a system/TwigHelperFunctions.php-ba kerül.
+ * A konstruktor megkapja a konténert.
  */
 class TwigExtension extends \Twig\Extension\AbstractExtension {
 
@@ -15,7 +15,7 @@ class TwigExtension extends \Twig\Extension\AbstractExtension {
 
     public function getFunctions(): array {
         return [
-            // is_safe: the function returns HTML, Twig must not escape it
+            // is_safe: a függvény HTML-t ad vissza, a Twig ne escape-elje
             new \Twig\TwigFunction('badge', [$this, 'badge'], ['is_safe' => ['html']]),
         ];
     }
@@ -27,7 +27,7 @@ class TwigExtension extends \Twig\Extension\AbstractExtension {
     }
 
     /**
-     * {{ badge('új', 'success') }} -> Bootstrap badge
+     * {{ badge('új', 'success') }} -> Bootstrap badge (címke)
      */
     public function badge(string $text, string $color = 'primary'): string {
         return '<span class="badge text-bg-'.htmlspecialchars($color, ENT_QUOTES).'">'.htmlspecialchars($text, ENT_QUOTES).'</span>';

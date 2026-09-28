@@ -27,9 +27,9 @@ final class PageAction extends Action {
     }
 
     /**
-     * Flash + CSRF demo: the form posts here (CsrfMiddleware checks the
-     * csrfToken field), the message is stored as a flash and shown after the
-     * redirect by app.twig.
+     * Flash + CSRF demo: ide küld az űrlap (a CsrfMiddleware ellenőrzi a
+     * csrfToken mezőt), az üzenet flash-ként tárolódik, és az átirányítás
+     * után az app.twig jeleníti meg.
      */
     public function flashDemo(Request $request, Response $response, $args): Response {
         $type = (string) $request->getParam('type', 'info');

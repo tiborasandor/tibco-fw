@@ -4,15 +4,15 @@ declare(strict_types=1);
 namespace app\modules\example\actions;
 
 /**
- * Demo login/logout for app/middlewares/AuthMiddleware.php - no password,
- * it just stores a fixed demo user in the session. A real login action would
- * validate the credentials (e.g. password_verify() against a user table)
- * before doing the same.
+ * Demo be- és kijelentkezés az app/middlewares/AuthMiddleware.php-hoz - jelszó
+ * nélkül, csak elment egy fix demo usert a sessionbe. Egy valódi login action
+ * előbb ellenőrizné a belépési adatokat (pl. password_verify() egy user
+ * táblával szemben), utána ugyanezt csinálná.
  */
 final class AuthAction extends Action {
 
     public function login(Request $request, Response $response, $args): Response {
-        // new session id on login (session fixation protection)
+        // belépéskor új session id (session fixation elleni védelem)
         $this->session->regenerateId();
         $this->session->set('user', [
             'id'   => 1,
@@ -36,8 +36,8 @@ final class AuthAction extends Action {
     }
 
     /**
-     * Protected page: listed in settings.php middlewares.AuthMiddleware.protected_routes,
-     * so AuthMiddleware only lets logged-in users through.
+     * Védett oldal: szerepel a settings.php middlewares.AuthMiddleware.protected_routes
+     * listájában, ezért az AuthMiddleware csak bejelentkezett usert enged át.
      */
     public function secret(Request $request, Response $response, $args): Response {
         return $this->view->render($response, 'secret.twig', [

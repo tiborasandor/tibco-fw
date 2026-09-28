@@ -3,7 +3,7 @@ return [
     'system' => [
         'timezone' => 'Europe/Budapest',
         'locale' => 'hu_HU.utf8',
-        // only show detailed error output (stack trace) in the response when explicitly enabled
+        // csak akkor mutasson részletes hibát (stack trace) a válaszban, ha explicit be van kapcsolva
         'debug' => filter_var(getenv('APP_DEBUG') ?: false, FILTER_VALIDATE_BOOLEAN),
         'session' => [
             'name'          => 'tibco',
@@ -21,8 +21,8 @@ return [
             'cache_dir' => CACHE_DIR.DS.'twig'
         ],
         'mail' => [
-            // SMTP connection for $this->helper->mail (system/helpers/MailHelper.php);
-            // without a username no SMTP auth is attempted (e.g. an internal relay)
+            // SMTP kapcsolat a $this->helper->mail-hez (system/helpers/MailHelper.php);
+            // username nélkül nincs SMTP hitelesítés (pl. belső relay esetén)
             'host'       => getenv('SMTP_HOST') ?: 'localhost',
             'port'       => (int) (getenv('SMTP_PORT') ?: 25),
             'username'   => getenv('SMTP_USERNAME') ?: null,
@@ -46,7 +46,7 @@ return [
     ],
     'middlewares' => [
         'RequestLogMiddleware' => ['enabled' => true, 'weight' => 0],
-        // example: session-based user + route protection (app/middlewares/AuthMiddleware.php)
+        // példa: sessionben tárolt user + route-védelem (app/middlewares/AuthMiddleware.php)
         'AuthMiddleware' => [
             'enabled' => true,
             'weight' => 1,
