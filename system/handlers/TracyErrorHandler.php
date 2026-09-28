@@ -17,7 +17,8 @@ final class TracyErrorHandler implements ErrorHandlerInterface {
 
     public function __construct(
         private readonly ResponseFactoryInterface $responseFactory,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly ?\Slim\Views\Twig $view = null
     ) {}
 
     public function __invoke(
@@ -49,6 +50,13 @@ final class TracyErrorHandler implements ErrorHandlerInterface {
             return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
         }
 
+        // only for explicit browser navigation (fetch()/XHR send */* and expect JSON)
+        if (str_contains($request->getHeaderLine('Accept'), 'text/html')) {
+            $message = $exception instanceof HttpException ? $exception->getMessage() : 'Szerver hiba történt.';
+            $response->getBody()->write($this->renderHtml($statusCode, $message));
+            return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+        }
+
         if ($exception instanceof HttpException) {
             $payload = ['status' => 'error', 'message' => $exception->getMessage()];
         } elseif ($displayErrorDetails) {
@@ -63,6 +71,33 @@ final class TracyErrorHandler implements ErrorHandlerInterface {
 
         $response->getBody()->write((string) json_encode($payload));
         return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * HTML error page for browser requests: app/resources/templates/error.twig
+     * if the project has one (variables: status, message), otherwise - or if
+     * rendering it fails too - a minimal built-in page.
+     */
+    private function renderHtml(int $statusCode, string $message): string {
+        if ($this->view !== null) {
+            try {
+                $environment = $this->view->getEnvironment();
+                if ($environment->getLoader()->exists('error.twig')) {
+                    return $environment->render('error.twig', ['status' => $statusCode, 'message' => $message]);
+                }
+            } catch (Throwable $th) {
+                $this->logger->error('error.twig rendering failed: '.$th->getMessage(), ['exception' => $th]);
+            }
+        }
+
+        $title = htmlspecialchars($statusCode.' '.$message, ENT_QUOTES, 'UTF-8');
+
+        return '<!doctype html><html lang="hu"><head><meta charset="utf-8">'
+            .'<meta name="viewport" content="width=device-width, initial-scale=1">'
+            .'<meta name="robots" content="noindex"><title>'.$title.'</title></head>'
+            .'<body style="font-family:system-ui,sans-serif;text-align:center;padding:4rem 1rem">'
+            .'<h1>'.$statusCode.'</h1><p>'.htmlspecialchars($message, ENT_QUOTES, 'UTF-8').'</p>'
+            .'<p><a href="/">Főoldal</a></p></body></html>';
     }
 
     private function wantsHtml(ServerRequestInterface $request): bool {

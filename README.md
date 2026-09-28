@@ -387,6 +387,10 @@ debuggert az `APP_DEBUG` környezeti változó kapcsolja:
   (`"Szerver hiba történt."`), miközben a hiba a naplóba
   (`log/error_log`, `log/all_log`) és — 500-as hiba esetén — a Tracy
   pillanatképek közé is bekerül.
+- Böngészős kérésnél (`Accept: text/html`) a kliens JSON helyett HTML hibaoldalt
+  kap: az `app/resources/templates/error.twig` sablont, ha a projektben van
+  ilyen (változók: `status`, `message`), különben egy minimális beépített
+  oldalt. Az API/AJAX kérések továbbra is JSON-t kapnak.
 - A várt, kliens felé szánt HTTP kivételek (pl. `Slim\Exception\HttpNotFoundException`,
   404-es útvonal) mindig a saját üzenetükkel térnek vissza, `displayErrorDetails`-től
   függetlenül — ezekhez nem készül Tracy pillanatkép, és nem íródik ki blue screen.

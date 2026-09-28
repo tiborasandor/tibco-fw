@@ -12,6 +12,11 @@ final class TwigHelperFunctions {
     }
 
     public function isActivePath(string $string, string $class = 'active'): string {
+        // no matched route (e.g. rendering the 404 error page)
+        if (!$this->container->has('route') || $this->container->get('route') === null) {
+            return '';
+        }
+
         $actualRouteName = $this->container->get('route')->getName();
         $actualRouteArguments = $this->container->get('route')->getArguments();
         $actualRouteUrl = $this->container->get('routeparser')->urlFor($actualRouteName, $actualRouteArguments);

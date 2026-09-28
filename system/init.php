@@ -235,7 +235,7 @@ $app->add(\Slim\Views\TwigMiddleware::createFromContainer($app));
 $displayErrorDetails = (bool) $container->get('settings')['system']['debug'];
 $errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, true, true, $container->get('log'));
 $errorMiddleware->setDefaultErrorHandler(
-    new \system\handlers\TracyErrorHandler($app->getResponseFactory(), $container->get('log'))
+    new \system\handlers\TracyErrorHandler($app->getResponseFactory(), $container->get('log'), $container->get('view'))
 );
 $app->run();
 ?>
