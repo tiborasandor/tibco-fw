@@ -478,7 +478,10 @@ Rendszerszintű helperek:
   `CF-Visitor` → `X-Forwarded-Proto` → URI; `getCurrentUrl`, `getBaseUrl`).
 - **`$this->helper->mail`** – [`MailHelper`](system/helpers/MailHelper.php):
   HTML e-mail küldése SMTP-n (PHPMailer):
-  `send($to, $subject, $htmlBody, $textBody = null, $headers = [])`. A
+  `send($to, $subject, $htmlBody, $textBody = null, $headers = [], $cc = [], $bcc = [])`.
+  A `$cc`/`$bcc` e-mail címek tömbje, valódi SMTP-szintű másolat: a BCC-s
+  címzett egyik fejlécben sem jelenik meg (a `$headers` csak nyers fejléceket
+  ad hozzá, egy oda tett `Bcc` mindenkinek látszana). A
   kapcsolatot és a feladót a `settings.php` `system.mail` szekciója adja
   (alapból a `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`,
   `SMTP_SECURE`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` környezeti változókból).
