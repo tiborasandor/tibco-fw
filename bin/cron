@@ -1,0 +1,91 @@
+#!/usr/bin/env php
+<?php
+declare(strict_types=1);
+
+/**
+ * Job scheduler entry point (see the "Ütemezett feladatok (cron)" section of README.md).
+ *
+ *   php bin/cron              runs the jobs due in this minute - the container's cron calls this every minute
+ *   php bin/cron list         lists the jobs with their schedule, last run and next run
+ *   php bin/cron run <job>    runs one job now, regardless of its schedule ("module/JobName" or "JobName")
+ */
+
+if (PHP_SAPI !== 'cli') {
+    exit(1);
+}
+
+require __DIR__.'/../system/init.php';
+
+/** @var \system\scheduler\Scheduler $schedule */
+$command = $argv[1] ?? 'due';
+
+switch ($command) {
+    case 'due':
+        if (!$schedule->isEnabled()) {
+            exit(0);
+        }
+        $failed = false;
+        $schedule->runDue(new DateTimeImmutable(), function (string $id, array $result) use (&$failed) {
+            if ($result['status'] === 'skipped' && $result['error'] === 'already run in this minute') {
+                return;
+            }
+            $failed = $failed || $result['status'] === 'error';
+            echo cronResultLine($id, $result), PHP_EOL;
+        });
+        exit($failed ? 1 : 0);
+
+    case 'run':
+        $name = $argv[2] ?? '';
+        $job = $name !== '' ? $schedule->find($name) : null;
+        if ($job === null) {
+            fwrite(STDERR, $name === '' ? "Usage: php bin/cron run <job>\n" : "Unknown or ambiguous job: $name (see: php bin/cron list)\n");
+            exit(2);
+        }
+        $result = $schedule->run($job);
+        echo cronResultLine($job->id, $result), PHP_EOL;
+        exit($result['status'] === 'ok' ? 0 : 1);
+
+    case 'list':
+        $state = $schedule->state();
+        $now = new DateTimeImmutable();
+        $rows = [['Job', 'Schedule', 'Last run', 'Status', 'Duration', 'Next run']];
+        foreach ($schedule->jobs() as $id => $job) {
+            $last = $state[$id] ?? null;
+            $rows[] = [
+                $id.($job->preventsOverlapping() ? ' (no overlap)' : ''),
+                $job->getExpression(),
+                $last ? substr($last['last_start'], 0, 16) : '-',
+                $last ? strtoupper($last['status']) : 'never run',
+                $last && $last['duration_ms'] !== null ? $last['duration_ms'].' ms' : '-',
+                $job->nextRun($now)->format('Y-m-d H:i'),
+            ];
+        }
+        $widths = array_map(fn ($i) => max(array_map(fn ($row) => mb_strlen($row[$i]), $rows)), array_keys($rows[0]));
+        foreach ($rows as $row) {
+            echo rtrim(implode('  ', array_map(fn ($cell, $width) => $cell.str_repeat(' ', $width - mb_strlen($cell)), $row, $widths))), PHP_EOL;
+        }
+        foreach ($schedule->jobs() as $id => $job) {
+            if (($state[$id]['status'] ?? null) === 'error') {
+                echo PHP_EOL, "$id last error: ", $state[$id]['error'], PHP_EOL;
+            }
+        }
+        if (!$schedule->isEnabled()) {
+            echo PHP_EOL, 'The scheduler is disabled (system.cron.enabled), scheduled runs are skipped.', PHP_EOL;
+        }
+        exit(0);
+
+    default:
+        fwrite(STDERR, "Usage: php bin/cron [list | run <job>]\n");
+        exit(2);
+}
+
+function cronResultLine(string $id, array $result): string {
+    $line = '['.date('Y-m-d H:i:s')."] $id ".strtoupper($result['status']);
+    if ($result['duration_ms'] !== null) {
+        $line .= ' ('.$result['duration_ms'].' ms)';
+    }
+    if ($result['error'] !== null) {
+        $line .= ': '.$result['error'];
+    }
+    return $line;
+}

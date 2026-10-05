@@ -23,6 +23,7 @@ ezek app-szintű feladatok.
 - [Naplózás](#naplózás)
 - [Hibakezelés](#hibakezelés)
 - [Helperek](#helperek)
+- [Ütemezett feladatok (cron)](#ütemezett-feladatok-cron)
 - [Kivételek naplózása az action-ökben](#kivételek-naplózása-az-action-ökben)
 - [Validáció](#validáció)
 - [Új modul létrehozása – gyors útmutató](#új-modul-létrehozása--gyors-útmutató)
@@ -67,15 +68,20 @@ app/
       middlewares/         – csak erre a modulra vonatkozó middleware-ek
       repositories/        – adatelérési réteg
       factories/           – egyéb szolgáltatás/gyártó osztályok
+      jobs/                – ütemezett feladatok (lásd: Ütemezett feladatok)
+      schedule.php         – a modul jobjainak időzítése
       resources/templates/ – a modul saját twig sablonjai
+bin/
+  cron                     – ütemező parancs (php bin/cron [list | run <job>])
 public/
   index.php                – belépési pont
   assets/vendor/           – Bootstrap 5 és Bootstrap Icons (lefordított fájlok)
   .htaccess                 – mod_rewrite szabály
 system/
   init.php                  – bootstrap: konténer, middleware-ek, modulok betöltése
-  Core.php                  – Action/Middleware/Repository/Factory közös őse
-  Action.php, Middleware.php, Repository.php, Factory.php
+  Core.php                  – Action/Middleware/Repository/Factory/Job közös őse
+  Action.php, Middleware.php, Repository.php, Factory.php, Job.php
+  scheduler/                 – ütemező (Scheduler, ScheduledJob)
   View.php                  – Twig view kiterjesztés (sablonnév-feloldás)
   TwigHelperFunctions.php    – Twig-be regisztrált helper függvények
   container/
@@ -104,7 +110,9 @@ log/                          – naplófájlok (gitignore-olt)
    - sorra betölti az engedélyezett modulokat: regisztrálja az `actions`,
      `factories`, `repositories`, `middlewares` osztályaikat a konténerben, majd
      betölti a modul `routes.php`-ját, és a route callable rövidítéseket
-     (`"PageAction:metodus"`) teljes osztálynévvé alakítja,
+     (`"PageAction:metodus"`) teljes osztálynévvé alakítja (parancssorból
+     futtatva — `bin/cron` — a `schedule.php`-t is, és itt megáll, a Slim nem
+     indul el),
    - hozzáadja a middleware-eket az alkalmazáshoz, majd elindítja Slimet
      (`$app->run()`).
 
@@ -187,7 +195,7 @@ $app->get('/', 'PageAction:mainPage')->setName('main_page');
 
 ### Osztályok elérhetősége a konténerben
 
-Betöltéskor minden `actions/`, `factories/`, `repositories/` osztály
+Betöltéskor minden `actions/`, `factories/`, `repositories/`, `jobs/` osztály
 regisztrálva lesz a konténerben `@modulnev\tipus\OsztalyNev` néven; a
 `middlewares/` osztályok pedig bekerülnek a globális middleware-listába.
 
@@ -475,6 +483,110 @@ Rendszerszintű helperek:
   (alapból a `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`,
   `SMTP_SECURE`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` környezeti változókból).
   Hibánál kivételt dob, a hívó kapja el.
+
+## Ütemezett feladatok (cron)
+
+A keretrendszer saját ütemezője ([`system/scheduler/`](system/scheduler/), a
+cron kifejezéseket a `dragonmantank/cron-expression` csomag értelmezi). A
+feladatok és az időzítésük a modulokban vannak, a konténer cronjának csak a
+`php bin/cron` parancsot kell percenként meghívnia:
+
+```
+* * * * * php /var/www/html/bin/cron
+```
+
+A cron ugyanazzal a felhasználóval fusson, mint a PHP-FPM, különben a `log/`
+mappában root tulajdonú fájlok keletkeznek, amiket a webes kérések nem tudnak
+írni.
+
+### Job írása
+
+A job a modul `jobs/` mappájában van, a [`system\Job`](system/Job.php)
+osztályból származik, és a `run()` metódusa a feladat. Ugyanúgy eléri a
+konténert, mint egy action vagy repository (`$this->log`, `$this->db`,
+`$this->repository()`, `$this->factory()`, ...):
+
+```php
+// app/modules/example/jobs/ExampleJob.php
+final class ExampleJob extends Job {
+    public function run(): void {
+        $name = $this->repository('MainRepository')->getName();
+        $this->log->info("ExampleJob lefutott ($name)");
+    }
+}
+```
+
+Ha a `run()` kivételt dob, a futás hibásnak számít: a hiba a naplóba (`error`
+szint) és a nyilvántartásba kerül, a többi job ettől még lefut.
+
+### Időzítés
+
+A modul `schedule.php`-jában, a `$schedule` változón keresztül (ahogy a
+`routes.php` az `$app`-on):
+
+```php
+// app/modules/example/schedule.php
+$schedule->job('ExampleJob')->hourly();
+$schedule->job('CleanupJob')->dailyAt('03:00')->withoutOverlapping();
+$schedule->job('@masikmodul\ReportJob')->weeklyOn(1, '07:30');
+```
+
+- `'JobNeve'` – a **saját** modul `jobs/` mappájából, `'@masikmodul\JobNeve'` –
+  egy **másik**, engedélyezett modulból.
+- Időzítés: `cron('*/10 * * * *')` (bármilyen cron kifejezés), `everyMinute()`,
+  `everyMinutes(15)`, `hourly()`, `hourlyAt(30)`, `daily()`, `dailyAt('03:00')`,
+  `weekly()` (hétfő 00:00), `weeklyOn(1, '07:30')` (1 = hétfő ... 7 = vasárnap),
+  `monthly()`. Az időpontok a `system.timezone` időzónában értendők.
+- `withoutOverlapping()`: nem indul el újra, amíg az előző futása tart (egy
+  lassú job különben párhuzamosan futhatna önmagával). A zárolás `flock`, a
+  folyamat halálakor magától feloldódik.
+
+### Működés
+
+- Egy hívás jobjai egymás után futnak; egy hosszú job a később sorra kerülőket
+  késlelteti (a percük ettől még az indításkori perc marad).
+- Egy job ütemezett percenként legfeljebb egyszer fut, akkor is, ha a
+  `bin/cron` egy percen belül kétszer hívódik.
+- A kimaradt percek (pl. amíg a konténer állt) nem pótlódnak.
+- A sikeres futás `debug`, az átfedés miatt kihagyott `warning`, a hibás
+  `error` szinten kerül a naplóba.
+- A konténer cronja helyett is futtatható bármikor; a `bin/cron` nincs a
+  `public/` alatt, kívülről nem hívható.
+
+### Parancsok
+
+```
+php bin/cron                  # az ebben a percben esedékes jobok (ezt hívja a cron)
+php bin/cron list             # jobok, időzítés, utolsó futás, állapot, következő futás
+php bin/cron run ExampleJob   # egy job azonnali futtatása, időzítéstől függetlenül
+```
+
+A `run` a job azonosítóját (`example/ExampleJob`) vagy, ha egyértelmű, csak a
+nevét várja. A `list` kimenete:
+
+```
+Job                 Schedule   Last run          Status  Duration  Next run
+example/ExampleJob  0 * * * *  2026-10-05 18:00  OK      4 ms      2026-10-05 19:00
+```
+
+Hibás utolsó futásnál a lista alatt a hibaüzenet is megjelenik.
+
+### Beállítások
+
+```php
+'cron' => [
+    'enabled'    => filter_var(getenv('CRON_ENABLED') ?: true, FILTER_VALIDATE_BOOLEAN),
+    'state_file' => LOG_DIR.DS.'cron'.DS.'state.json',
+],
+```
+
+- **`enabled`**: kikapcsolva (`CRON_ENABLED=0`) a percenkénti `bin/cron`
+  semmit nem futtat (pl. egy fejlesztői példányon), a kézi `run` működik.
+- **`state_file`**: az utolsó futások nyilvántartása (jobonként kezdés,
+  időtartam, állapot, hibaüzenet; előzményt nem őriz, az a naplóban van). Ha
+  elveszik, a jobok ugyanúgy futnak, csak a `list` mutat „never run” állapotot
+  az első futásig. A `log/` mappában van, így ha az a hoszton van felcsatolva,
+  a naplóval együtt megmarad a konténer cseréje után is.
 
 ## Kivételek naplózása az action-ökben
 

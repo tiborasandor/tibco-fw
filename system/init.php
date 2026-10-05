@@ -17,6 +17,8 @@ define('RESOURCES_DIR', APP_DIR.DS.'resources');
 define('TEMPLATES_DIR', RESOURCES_DIR.DS.'templates');
 define('PUBLIC_DIR', ROOT_DIR.DS.'public');
 define('VENDOR_DIR', ROOT_DIR.DS.'vendor');
+// command line run (bin/cron): the modules are loaded, but Slim is not started
+define('IS_CLI', PHP_SAPI === 'cli');
 
 /**
  * Reqiure composer autoload
@@ -123,6 +125,13 @@ $moduleWeights = array_map(function($v) {
 array_multisort($moduleWeights, $modules);
 
 /**
+ * Job scheduler (filled from the modules' schedule.php, only on the command line)
+ */
+if (IS_CLI) {
+    $schedule = new \system\scheduler\Scheduler($container);
+}
+
+/**
  * Load modules
  */
 foreach ($modules as $module => $params) {
@@ -144,7 +153,8 @@ foreach ($modules as $module => $params) {
             'system\\Middleware'                            => "$prefix\\middlewares\\Middleware",
             'system\\Action'                                => "$prefix\\actions\\Action",
             'system\\Repository'                            => "$prefix\\repositories\\Repository",
-            'system\\Factory'                               => "$prefix\\factories\\Factory"
+            'system\\Factory'                               => "$prefix\\factories\\Factory",
+            'system\\Job'                                   => "$prefix\\jobs\\Job"
         ];
 
         foreach ($class_aliases as $original => $aliases) {
@@ -159,7 +169,7 @@ foreach ($modules as $module => $params) {
         /**
          * Register classes
          */
-        foreach (['actions','factories','repositories','middlewares'] as $type) {
+        foreach (['actions','factories','repositories','jobs','middlewares'] as $type) {
             $dir = $module_dir.DS.$type;
             if (is_dir($dir)) {
                 $files = array_diff(scandir($dir), ['.', '..']);
@@ -229,7 +239,23 @@ foreach ($modules as $module => $params) {
                 }
             }
         }
+
+        /**
+         * Include schedule (command line only)
+         */
+        $schedule_file = $module_dir.DS.'schedule.php';
+        if (IS_CLI && file_exists($schedule_file)) {
+            $schedule->setModule($module);
+            require $schedule_file;
+        }
     }
+}
+
+/**
+ * On the command line the caller (bin/cron) continues from here
+ */
+if (IS_CLI) {
+    return;
 }
 
 foreach (array_reverse($middlewares) as $middleware) {

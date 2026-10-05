@@ -19,6 +19,13 @@ return [
             // route-nevek, amelyeknél nincs CSRF ellenőrzés (pl. külső webhook, API végpont)
             'exempt_routes' => [],
         ],
+        'cron' => [
+            // ütemezett feladatok (bin/cron, a modulok schedule.php-ja); kikapcsolva a percenkénti
+            // futtatás semmit nem csinál, a kézi `php bin/cron run <job>` viszont működik
+            'enabled' => filter_var(getenv('CRON_ENABLED') ?: true, FILTER_VALIDATE_BOOLEAN),
+            // az utolsó futások nyilvántartása (php bin/cron list)
+            'state_file' => LOG_DIR.DS.'cron'.DS.'state.json',
+        ],
         'twig' => [
             'template_dir' => TEMPLATES_DIR,
             'cache' => false,
