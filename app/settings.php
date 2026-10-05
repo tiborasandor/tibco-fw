@@ -20,9 +20,10 @@ return [
             'exempt_routes' => [],
         ],
         'cron' => [
-            // ütemezett feladatok (bin/cron, a modulok schedule.php-ja); kikapcsolva a percenkénti
+            // ütemezett feladatok (bin/cron, a modulok schedule.php-ja); hogy a konténerben fut-e
+            // cron, azt a php-nginx CRON_COMMAND változója dönti el. Kikapcsolva a percenkénti
             // futtatás semmit nem csinál, a kézi `php bin/cron run <job>` viszont működik
-            'enabled' => filter_var(getenv('CRON_ENABLED') ?: true, FILTER_VALIDATE_BOOLEAN),
+            'enabled' => true,
             // az utolsó futások nyilvántartása (php bin/cron list)
             'state_file' => LOG_DIR.DS.'cron'.DS.'state.json',
         ],

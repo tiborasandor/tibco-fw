@@ -489,15 +489,16 @@ Rendszerszintű helperek:
 A keretrendszer saját ütemezője ([`system/scheduler/`](system/scheduler/), a
 cron kifejezéseket a `dragonmantank/cron-expression` csomag értelmezi). A
 feladatok és az időzítésük a modulokban vannak, a konténer cronjának csak a
-`php bin/cron` parancsot kell percenként meghívnia:
+`php bin/cron` parancsot kell percenként meghívnia. A `php-nginx` image-ben ezt
+a `CRON_COMMAND` környezeti változó kapcsolja be:
 
 ```
-* * * * * php /var/www/html/bin/cron
+CRON_COMMAND=php /var/www/html/bin/cron
 ```
 
-A cron ugyanazzal a felhasználóval fusson, mint a PHP-FPM, különben a `log/`
-mappában root tulajdonú fájlok keletkeznek, amiket a webes kérések nem tudnak
-írni.
+Más környezetben a cron ugyanazzal a felhasználóval fusson, mint a PHP-FPM,
+különben a `log/` mappában root tulajdonú fájlok keletkeznek, amiket a webes
+kérések nem tudnak írni.
 
 ### Job írása
 
@@ -575,13 +576,14 @@ Hibás utolsó futásnál a lista alatt a hibaüzenet is megjelenik.
 
 ```php
 'cron' => [
-    'enabled'    => filter_var(getenv('CRON_ENABLED') ?: true, FILTER_VALIDATE_BOOLEAN),
+    'enabled'    => true,
     'state_file' => LOG_DIR.DS.'cron'.DS.'state.json',
 ],
 ```
 
-- **`enabled`**: kikapcsolva (`CRON_ENABLED=0`) a percenkénti `bin/cron`
-  semmit nem futtat (pl. egy fejlesztői példányon), a kézi `run` működik.
+- **`enabled`**: kikapcsolva (`false`) a percenkénti `bin/cron` semmit nem
+  futtat, a kézi `run` működik. Hogy egy konténerben egyáltalán fut-e cron,
+  azt a `php-nginx` `CRON_COMMAND` változója dönti el, nem ez.
 - **`state_file`**: az utolsó futások nyilvántartása (jobonként kezdés,
   időtartam, állapot, hibaüzenet; előzményt nem őriz, az a naplóban van). Ha
   elveszik, a jobok ugyanúgy futnak, csak a `list` mutat „never run” állapotot
