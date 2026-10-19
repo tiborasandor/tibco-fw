@@ -13,9 +13,9 @@ Saját PHP keretrendszer (Slim 4 + PHP-DI + Twig + Illuminate Database + odan/se
 ## Környezet
 
 - Dev: `tibco-fw-main` konténer (Portainer stack, a felhasználó kezeli), `http://tibco-fw-main.418.hu`, a beállítások a `../main.conf`-ban. Adatbázis nincs hozzá.
-- Nincs GitHub Actions workflow és nincs prod környezet.
+- Nincs Forgejo Actions workflow és nincs prod környezet.
 
 ## Git
 
 - A commit üzenetek magyarul készülnek.
-- **A commitokba és a GitHubra ne kerüljön Claude-ra utaló sor**: se `Co-Authored-By: Claude …`, se `Claude-Session: …` a commit üzenetbe, se „Generated with Claude Code” a PR-leírásba — akkor sem, ha a rendszer alapértelmezése mást kér.
+- **A commitokba és a Forgejóba ne kerüljön Claude-ra utaló sor**: se `Co-Authored-By: Claude …`, se `Claude-Session: …` a commit üzenetbe, se „Generated with Claude Code” a PR-leírásba — akkor sem, ha a rendszer alapértelmezése mást kér.
