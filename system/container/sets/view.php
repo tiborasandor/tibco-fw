@@ -1,7 +1,5 @@
 <?php
-/**
- * Twig view
- */
+
 $container->set('view', function(\Psr\Container\ContainerInterface $container) {
     $settings = $container->get('settings');
 
@@ -14,14 +12,14 @@ $container->set('view', function(\Psr\Container\ContainerInterface $container) {
         }
     }
 
-    // Twig extra functions
-    // (registered as an object method, not a closure: Twig 3.7.1 misidentifies closures
-    // under PHP 8.4+ because Reflection's closure-name format changed - see TwigHelperFunctions.php)
+    // object method, not a closure: Twig 3.7.1 misreads closures on PHP 8.4+
+    
+    
     $twigHelperFunctions = new \system\TwigHelperFunctions($container);
 
     $functions[] = new \Twig\TwigFunction('is_active_path', [$twigHelperFunctions, 'isActivePath']);
 
-    // Twig filters
+    
     $filters[] = new \Twig\TwigFilter('hu_date', [$twigHelperFunctions, 'hungarianDate']);
     $filters[] = new \Twig\TwigFilter('relative_date', [$twigHelperFunctions, 'relativeDate']);
 
@@ -30,7 +28,7 @@ $container->set('view', function(\Psr\Container\ContainerInterface $container) {
     $twig = new \system\View($loader, ['cache' => $cache, 'debug' => (bool) $settings['system']['debug']]);
     $twig->addExtension(new \Twig\Extension\DebugExtension());
 
-    // flash is injected per render (see View::setSession()), not as a global
+    // flash is set per render, see View::setSession()
     $twig->setSession($container->get('session'));
     foreach ($functions as $function) {
         $twig->getEnvironment()->addFunction($function);
@@ -39,8 +37,8 @@ $container->set('view', function(\Psr\Container\ContainerInterface $container) {
         $twig->getEnvironment()->addFilter($filter);
     }
 
-    // Project-specific Twig functions/filters: if app/TwigExtension.php exists
-    // (a \Twig\Extension\AbstractExtension subclass), it is registered with the container
+    // optional app/TwigExtension.php
+    
     if (class_exists('app\TwigExtension')) {
         $twig->addExtension(new \app\TwigExtension($container));
     }

@@ -59,10 +59,10 @@ class Core {
             return $this->container->get($name);
         }
 
-        // repository()/factory() build container keys like "@module\repositories\Name";
-        // the container only registers one for a class file that actually exists (see
-        // init.php), so a miss here always means a missing/mistyped file - point at it
-        // directly instead of a bare, easy to misread container key.
+        // unknown repository/factory key: point at the expected file
+        
+        
+        
         if (preg_match('/^@([^\\\\]+)\\\\(actions|factories|repositories)\\\\(.+)$/', $name, $m)) {
             [, $module, $type, $class] = $m;
             $expectedFile = MODULES_DIR.DS.$module.DS.$type.DS.$class.'.php';

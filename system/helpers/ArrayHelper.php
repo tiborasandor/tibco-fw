@@ -5,23 +5,17 @@ namespace system\helpers;
 
 class ArrayHelper {
 
-    /**
-     * Turns a stdClass into an array
-     */
+    /** stdClass to array */
     public function stdToArray($stdclass):array {
         return $stdclass ? json_decode(json_encode($stdclass), true) : [];
     }
 
-    /**
-     * Uses the first row of an array as keys for the rest of the array's elements
-     */
+    /** Uses the first row as keys for the other rows */
     public function firstRowToKeys($array):array {
         return $this->rowToKeys($array, 1);
     }
 
-    /**
-     * Uses one row of an array as keys for the rest of the array's elements
-     */
+    /** Uses one row as keys for the other rows */
     public function rowToKeys($array, $row_number):array {
         $row = array_slice($array, $row_number - 1, 1, true);
         $keys = array_map('trim', reset($row) ?: []);
@@ -31,11 +25,7 @@ class ArrayHelper {
         }, $array);
     }
 
-    /**
-     * Recursively filters (empties) empty elements in an array
-     * $exceptions can list values that should be kept even though they'd otherwise count as empty (e.g. 0, '0', false)
-     * If no exceptions are given, empty() is applied to every element
-     */
+    /** Recursively removes empty elements, except the values in $exceptions (e.g. 0, '0') */
     public function filterRecursive(array $array, ?array $exceptions = null) {
         $array = array_map(function($value) use ($exceptions) {
             if (is_array($value)) {
@@ -56,11 +46,9 @@ class ArrayHelper {
         }, ARRAY_FILTER_USE_BOTH);
     }
 
-    /**
-     * Removes keys that are empty across every row
-     */
+    /** Removes keys that are empty in every row */
     public function removeEmptySameRows(array $rows):array {
-        // remove empty keys, remember the non-empty ones ($keys)
+        
         $keys = [];
         array_walk($rows, function(&$item) use (&$keys) {
             $item = array_filter($item, function($v, $k) use (&$keys) {
@@ -73,7 +61,7 @@ class ArrayHelper {
             }, ARRAY_FILTER_USE_BOTH);
         });
 
-        // put the non-empty keys back into the rows where they were missing
+        
         array_walk($rows, function(&$item) use ($keys) {
             $item += $keys;
             ksort($item);
@@ -82,9 +70,7 @@ class ArrayHelper {
         return $rows;
     }
 
-    /**
-     * Search in a two-dimensional array by key
-     */
+    /** Search in a two-dimensional array by key */
     public function multiSearch(array $array, string $key, $searchValue):array {
         $searchValues = is_array($searchValue) ? $searchValue : [$searchValue];
 

@@ -3,9 +3,7 @@ declare(strict_types=1);
 
 namespace system;
 
-/**
- * Default defines
- */
+// Constants
 define('DS', DIRECTORY_SEPARATOR);
 define('SYSTEM_DIR', __DIR__);
 define('ROOT_DIR', dirname(SYSTEM_DIR, 1));
@@ -17,30 +15,21 @@ define('RESOURCES_DIR', APP_DIR.DS.'resources');
 define('TEMPLATES_DIR', RESOURCES_DIR.DS.'templates');
 define('PUBLIC_DIR', ROOT_DIR.DS.'public');
 define('VENDOR_DIR', ROOT_DIR.DS.'vendor');
-// command line run (bin/cron): the modules are loaded, but Slim is not started
+// CLI (bin/cron): modules are loaded, Slim is not started
 define('IS_CLI', PHP_SAPI === 'cli');
 
-/**
- * Reqiure composer autoload
- */
+// Composer autoload
 $composer_autoload = VENDOR_DIR.DS.'autoload.php';
 if (!file_exists($composer_autoload)) {
     die('The composer autoload file ('.$composer_autoload.') load failed.');
 }
 require_once $composer_autoload;
 
-/**
- * Load settings
- * (needed already at this point for Tracy, before the container exists;
- * system/container/sets/settings.php reuses this same $settings variable
- * instead of loading the file a second time)
- */
+// Settings (loaded here already for Tracy)
 $app_settings_file = APP_DIR.DS.'settings.php';
 $settings = file_exists($app_settings_file) ? require $app_settings_file : [];
 
-/**
- * Tracy debugger
- */
+// Tracy
 $debug = (bool) ($settings['system']['debug'] ?? false);
 $tracyLogDir = LOG_DIR.DS.'tracy';
 if (!is_dir($tracyLogDir)) {
@@ -48,32 +37,22 @@ if (!is_dir($tracyLogDir)) {
 }
 \Tracy\Debugger::enable($debug ? \Tracy\Debugger::DEVELOPMENT : \Tracy\Debugger::PRODUCTION, $tracyLogDir);
 
-/**
- * Create app
- */
+// App
 $app = \Slim\Factory\AppFactory::createFromContainer(new \DI\Container());
 $app->setBasePath('/');
 
-/**
- * Container sets
- */
+// Container
 require_once SYSTEM_DIR.DS.'container'.DS.'container_init.php';
 
-/**
- * Set timezone
- */
+// Timezone
 date_default_timezone_set($container->get('settings')['system']['timezone']);
 
-/**
- * Set locale
- */
+// Locale
 $locale = $container->get('settings')['system']['locale'];
 putenv("LC_ALL=$locale");
 setlocale(LC_ALL, $locale);
 
-/**
- * System class aliases
- */
+// Class aliases
 class_alias('\system\Middleware','\system\middlewares\Middleware');
 class_alias('\Psr\Http\Message\ServerRequestInterface','\system\middlewares\Request');
 class_alias('\Psr\Http\Server\RequestHandlerInterface','\system\middlewares\RequestHandler');
@@ -84,9 +63,7 @@ class_alias('\Psr\Http\Server\RequestHandlerInterface','\app\middlewares\Request
 class_alias('\Slim\Http\Response','\app\middlewares\Response');
 class_alias('\Slim\Routing\RouteCollectorProxy','RouteCollectorProxy');
 
-/**
- * Respect validator custom rules
- */
+// Respect validator custom rules
 \Respect\Validation\ContainerRegistry::setContainer(
     \Respect\Validation\ContainerRegistry::createContainer([
         'respect.validation.rule_factory.namespaces' => [
@@ -96,9 +73,7 @@ class_alias('\Slim\Routing\RouteCollectorProxy','RouteCollectorProxy');
     ])
 );
 
-/**
- * System middlewares
- */
+// System middlewares
 $middlewares[] = 'system\middlewares\RouteMiddleware';
 $middlewares[] = 'system\middlewares\SessionMiddleware';
 $middlewares[] = 'system\middlewares\CsrfMiddleware';
@@ -109,7 +84,7 @@ $settingsMiddlewares = array_filter($settingsMiddlewares, function($v, $k) {
     return $v['enabled'] ?? false;
 }, ARRAY_FILTER_USE_BOTH);
 
-// entries without a weight are sorted to the end, same as for the module middlewares below
+// entries without weight go last
 $settingsMiddlewareWeights = array_map(function($v) {
     return $v['weight'] ?? PHP_INT_MAX;
 }, $settingsMiddlewares);
@@ -124,23 +99,17 @@ $moduleWeights = array_map(function($v) {
 }, $modules);
 array_multisort($moduleWeights, $modules);
 
-/**
- * Job scheduler (filled from the modules' schedule.php, only on the command line)
- */
+// Job scheduler (CLI only)
 if (IS_CLI) {
     $schedule = new \system\scheduler\Scheduler($container);
 }
 
-/**
- * Load modules
- */
+// Modules
 foreach ($modules as $module => $params) {
     if ($params['enabled'] == true) {
         $module_dir = MODULES_DIR.DS.$module;
 
-        /**
-         * Class aliases
-         */
+        // Class aliases
         $prefix = "app\\modules\\$module";
         $class_aliases = [
             'Psr\\Http\\Server\\RequestHandlerInterface'    => "$prefix\\middlewares\\RequestHandler",
@@ -166,17 +135,15 @@ foreach ($modules as $module => $params) {
             }
         }
 
-        /**
-         * Register classes
-         */
+        // Register classes
         foreach (['actions','factories','repositories','jobs','middlewares'] as $type) {
             $dir = $module_dir.DS.$type;
             if (is_dir($dir)) {
                 $files = array_diff(scandir($dir), ['.', '..']);
 
                 if ($type === 'middlewares') {
-                    // súly szerint rendezve (settings.php modules.<modul>.middlewares.<Osztaly>.weight);
-                    // akinek nincs megadva súlya, az a scandir szerinti (ábécé-) sorrendjét megtartva a végén marad
+                    // by weight (modules.<module>.middlewares.<Class>.weight), unweighted last
+                    
                     $moduleMiddlewareSettings = $params['middlewares'] ?? [];
                     $moduleMiddlewareClasses = [];
                     foreach ($files as $file) {
@@ -210,16 +177,12 @@ foreach ($modules as $module => $params) {
             }
         }
 
-        /**
-         * Include routes
-         */
+        // Routes
         $route_file = $module_dir.DS.'routes.php';
         if (file_exists($route_file)) {
             require_once $route_file;
 
-            /**
-             * Routes mod
-             */
+            // resolve short callables to the module's actions
             $routes = $app->getRouteCollector()->getRoutes();
             foreach ($routes as $key => $route) {
                 $callable = $route->getCallable();
@@ -240,9 +203,7 @@ foreach ($modules as $module => $params) {
             }
         }
 
-        /**
-         * Include schedule (command line only)
-         */
+        // Schedule (CLI only)
         $schedule_file = $module_dir.DS.'schedule.php';
         if (IS_CLI && file_exists($schedule_file)) {
             $schedule->setModule($module);
@@ -251,9 +212,7 @@ foreach ($modules as $module => $params) {
     }
 }
 
-/**
- * On the command line the caller (bin/cron) continues from here
- */
+// CLI: bin/cron continues from here
 if (IS_CLI) {
     return;
 }

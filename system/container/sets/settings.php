@@ -1,8 +1,4 @@
 <?php
-/**
- * Settings a konténerben
- * (a fájlt már a system/init.php betöltötte a Tracy debug módjához, itt csak
- * a konténerbe kerül az ott már beolvasott $settings tömb)
- */
+// $settings is already loaded by init.php (needed for Tracy)
 $container->set('settings', $settings);
 ?>

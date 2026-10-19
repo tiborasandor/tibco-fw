@@ -5,30 +5,20 @@ namespace system\scheduler;
 
 use Cron\CronExpression;
 
-/**
- * One entry of the schedule: which job and when (a cron expression).
- * Created by Scheduler::job(), configured with the fluent methods below
- * in a module's schedule.php.
- */
+/** One schedule entry: a job and its cron expression. */
 class ScheduledJob {
 
     private ?CronExpression $expression = null;
     private bool $withoutOverlapping = false;
 
-    /**
-     * @param string $id        Display/state name, e.g. "example/ExampleJob"
-     * @param string $container Container key of the job, e.g. "@example\jobs\ExampleJob"
-     */
+    
     public function __construct(
         public readonly string $id,
         public readonly string $container
     ) {
     }
 
-    /**
-     * Any standard cron expression ("minute hour day-of-month month day-of-week"),
-     * in the timezone of settings.php (system.timezone).
-     */
+    /** Cron expression, in system.timezone. */
     public function cron(string $expression): static {
         if (!CronExpression::isValidExpression($expression)) {
             throw new \InvalidArgumentException("Invalid cron expression for {$this->id}: $expression");
@@ -83,10 +73,7 @@ class ScheduledJob {
         return $this->cron('0 0 1 * *');
     }
 
-    /**
-     * Skip a run while the previous run of this job is still in progress
-     * (otherwise a slow job may run in parallel with itself).
-     */
+    /** Skip while the previous run is still in progress. */
     public function withoutOverlapping(): static {
         $this->withoutOverlapping = true;
         return $this;

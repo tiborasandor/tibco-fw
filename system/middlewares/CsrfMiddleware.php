@@ -11,8 +11,8 @@ class CsrfMiddleware extends Middleware {
         global $app;
 
         if (!in_array($request->getMethod(), self::SAFE_METHODS)) {
-            // routes listed by name in settings (system.csrf.exempt_routes) skip the check,
-            // e.g. webhooks or API endpoints called from outside the site
+            // routes in system.csrf.exempt_routes skip the check
+            
             $routeName = $this->route?->getName();
             $exemptRoutes = $this->settings['system']['csrf']['exempt_routes'] ?? [];
             $isExempt = $routeName !== null && in_array($routeName, $exemptRoutes, true);
@@ -32,10 +32,10 @@ class CsrfMiddleware extends Middleware {
                         'ip'     => $this->helper->request->getClientIp($request)
                     ]);
 
-                    // NOTE: $app->getResponseFactory() resolves to the PSR-17 factory
-                    // auto-detected from the installed PSR-7 implementation (guzzlehttp/psr7
-                    // here), which does NOT have withJson() - that's only on the slim/http
-                    // decorator classes, which nothing wraps this response in.
+                    // guzzle PSR-7 response: no withJson()
+                    
+                    
+                    
                     $response = $app->getResponseFactory()->createResponse(403);
                     $response->getBody()->write((string) json_encode([
                         'status' => 'error',

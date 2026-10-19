@@ -3,19 +3,7 @@ declare(strict_types=1);
 
 namespace system\scheduler;
 
-/**
- * Job scheduler. The modules register their jobs in their schedule.php
- * ($schedule->job('ExampleJob')->dailyAt('03:00')), bin/cron is called every
- * minute by the container's cron and runs the jobs that are due.
- *
- * - The jobs of one call run one after the other; a job's exception is logged
- *   and recorded, the remaining jobs still run.
- * - A job runs at most once per scheduled minute, even if bin/cron is called
- *   twice in the same minute.
- * - Missed minutes (e.g. while the container was down) are not caught up.
- * - The last run of every job (start, duration, status, error) is kept in a
- *   JSON state file (system.cron.state_file), `php bin/cron list` shows it.
- */
+/** Runs the jobs of the modules' schedule.php files; bin/cron calls it every minute. */
 class Scheduler {
 
     /** @var array<string,ScheduledJob> */
@@ -34,18 +22,12 @@ class Scheduler {
         return (bool) ($this->container->get('settings')['system']['cron']['enabled'] ?? true);
     }
 
-    /**
-     * The module whose schedule.php is being loaded (set by init.php), short
-     * job names are resolved in it.
-     */
+    /** Module whose schedule.php is being loaded; short job names resolve in it. */
     public function setModule(string $module): void {
         $this->module = $module;
     }
 
-    /**
-     * 'ExampleJob' - a job of the module's own jobs/ folder,
-     * '@othermodule\ExampleJob' - a job of another, enabled module.
-     */
+    /** 'ExampleJob' (own module) or '@othermodule\ExampleJob' */
     public function job(string $name): ScheduledJob {
         $parts = explode('\\', ltrim($name, '@'));
         if (count($parts) === 1 && !str_starts_with($name, '@')) {
@@ -75,10 +57,7 @@ class Scheduler {
         return $this->jobs;
     }
 
-    /**
-     * Finds a job by its id ("module/JobName") or, if it is unambiguous,
-     * by its class name alone ("JobName").
-     */
+    /** Finds a job by id ("module/JobName") or by an unambiguous class name. */
     public function find(string $name): ?ScheduledJob {
         if (isset($this->jobs[$name])) {
             return $this->jobs[$name];
@@ -87,12 +66,7 @@ class Scheduler {
         return count($matches) === 1 ? reset($matches) : null;
     }
 
-    /**
-     * Runs the jobs due in the minute of $now. $onResult (if given) is called
-     * right after each job with the job id and the result.
-     *
-     * @return array<string,array{status:string,duration_ms:?int,error:?string}> keyed by job id
-     */
+    /** @return array<string,array{status:string,duration_ms:?int,error:?string}> Jobs due in the minute of $now, by job id */
     public function runDue(\DateTimeImmutable $now, ?callable $onResult = null): array {
         $minute = $now->setTime((int) $now->format('H'), (int) $now->format('i'));
         $results = [];
@@ -109,14 +83,9 @@ class Scheduler {
         return $results;
     }
 
-    /**
-     * Runs one job. With $minute it is a scheduled run (skipped if this minute
-     * was already run), without it a manual run (`php bin/cron run`).
-     *
-     * @return array{status:string,duration_ms:?int,error:?string} status: ok, error, skipped
-     */
+    /** @return array{status:string,duration_ms:?int,error:?string} Scheduled run with $minute, manual run without */
     public function run(ScheduledJob $job, ?\DateTimeImmutable $minute = null): array {
-        // a second call in the same minute: nothing to do (checked again under lock below)
+        // already run in this minute
         if ($minute !== null && ($this->state()[$job->id]['scheduled_minute'] ?? null) === $minute->format('Y-m-d H:i')) {
             return ['status' => 'skipped', 'duration_ms' => null, 'error' => 'already run in this minute'];
         }
@@ -133,7 +102,7 @@ class Scheduler {
         try {
             $start = new \DateTimeImmutable();
 
-            // claim the run under the state file lock, so two calls in the same minute can't both run it
+            // claim the run under the state file lock
             $claimed = $this->updateState($job->id, function (?array $entry) use ($minute, $start) {
                 if ($minute !== null && ($entry['scheduled_minute'] ?? null) === $minute->format('Y-m-d H:i')) {
                     return null;
@@ -184,11 +153,7 @@ class Scheduler {
         }
     }
 
-    /**
-     * The recorded last runs, keyed by job id.
-     *
-     * @return array<string,array{scheduled_minute:?string,last_start:string,duration_ms:?int,status:string,error:?string}>
-     */
+    /** @return array<string,array{scheduled_minute:?string,last_start:string,duration_ms:?int,status:string,error:?string}> */
     public function state(): array {
         if (!is_file($this->stateFile)) {
             return [];
@@ -202,11 +167,7 @@ class Scheduler {
         return json_decode($content ?: '[]', true) ?: [];
     }
 
-    /**
-     * Read-modify-write of one job's state entry under an exclusive lock
-     * (parallel bin/cron calls may run jobs at the same time). If $update
-     * returns null, nothing is written and false is returned.
-     */
+    /** Locked read-modify-write of one job's state; null from $update writes nothing. */
     private function updateState(string $id, callable $update): bool {
         $this->ensureDir(dirname($this->stateFile));
         $handle = fopen($this->stateFile, 'c+');
@@ -231,12 +192,7 @@ class Scheduler {
         }
     }
 
-    /**
-     * Non-blocking per-job lock. flock is released by the OS when the process
-     * dies, so a crashed run never leaves a stale lock behind.
-     *
-     * @return resource|null null if another run holds it
-     */
+    /** @return resource|null Non-blocking per-job lock, null if held by another run */
     private function acquireLock(ScheduledJob $job) {
         $this->ensureDir($this->lockDir);
         $handle = fopen($this->lockDir.DS.str_replace('/', '.', $job->id).'.lock', 'c');

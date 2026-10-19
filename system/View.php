@@ -4,15 +4,7 @@ declare(strict_types=1);
 namespace system;
 
 final class View extends \Slim\Views\Twig {
-    /**
-     * Flash messages can't be a Twig global (addGlobal('flash', ...)):
-     * TwigMiddleware::createFromContainer() fetches the 'view' container entry
-     * during bootstrap (init.php), before SessionMiddleware starts the session
-     * for the request. A global set there would freeze the Flash object of a
-     * not-yet-started (empty) session, disconnected from the one the actions
-     * actually write to. So the flash data is added to $data freshly on every
-     * render()/fetchBlock() call instead.
-     */
+    // flash is added per render: the session is not started yet when the view is created
     private ?\Odan\Session\SessionInterface $session = null;
 
     public function setSession(\Odan\Session\SessionInterface $session): void {

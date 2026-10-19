@@ -1,7 +1,5 @@
 <?php
-/**
- * Logger to container
- */
+
 $container->set('log', function (\Psr\Container\ContainerInterface $container) {
     $settings = $container->get('settings')['system'];
     $logger_settings = $settings['logger'];
@@ -18,7 +16,7 @@ $container->set('log', function (\Psr\Container\ContainerInterface $container) {
         $filter_handler = new \Monolog\Handler\FilterHandler($stream_handler, $level_number, $level_number);
         $logger->pushHandler($filter_handler);
     }
-    // all log file
+    // combined log file
     $stream_handler = new \Monolog\Handler\StreamHandler($logger_settings['log_dir'].DS.'all_log', 100);
     $stream_handler->setFormatter($formatter);
     $logger->pushHandler($stream_handler);

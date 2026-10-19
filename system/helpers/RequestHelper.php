@@ -5,11 +5,7 @@ namespace system\helpers;
 
 class RequestHelper {
 
-    /**
-     * Tries to determine the real client IP.
-     * Checks the CF-Connecting-IP header first (for deployments behind Cloudflare),
-     * then X-Forwarded-For, and finally falls back to the raw REMOTE_ADDR.
-     */
+    /** Client IP: CF-Connecting-IP, X-Forwarded-For, then REMOTE_ADDR. */
     public function getClientIp(\Psr\Http\Message\ServerRequestInterface $request): string {
         $ip = trim($request->getHeaderLine('CF-Connecting-IP'));
 
@@ -27,13 +23,7 @@ class RequestHelper {
         return $ip !== '' ? $ip : 'unknown';
     }
 
-    /**
-     * Tries to determine the real request scheme (http/https).
-     * Behind Cloudflare the edge-to-origin connection can be plain http, so
-     * X-Forwarded-Proto isn't reliable there. The visitor's actual scheme is in
-     * Cloudflare's CF-Visitor header (JSON: {"scheme":"https"}), which is checked
-     * first, then X-Forwarded-Proto, and finally the raw URI.
-     */
+    /** Request scheme: CF-Visitor, X-Forwarded-Proto, then the URI. */
     public function getScheme(\Psr\Http\Message\ServerRequestInterface $request): string {
         $cfVisitor = trim($request->getHeaderLine('CF-Visitor'));
         if ($cfVisitor !== '') {
@@ -51,9 +41,7 @@ class RequestHelper {
         return $request->getUri()->getScheme();
     }
 
-    /**
-     * The full public URL of the current request (with the scheme correction above).
-     */
+    /** Full public URL of the current request. */
     public function getCurrentUrl(\Psr\Http\Message\ServerRequestInterface $request): string {
         $uri = $request->getUri();
         $query = $uri->getQuery();
@@ -61,10 +49,7 @@ class RequestHelper {
         return $this->getScheme($request).'://'.$uri->getAuthority().$uri->getPath().($query !== '' ? '?'.$query : '');
     }
 
-    /**
-     * Scheme + host of the current request, without path - e.g. for building
-     * absolute asset URLs (og:image, RSS links).
-     */
+    /** Scheme + host of the current request, without path. */
     public function getBaseUrl(\Psr\Http\Message\ServerRequestInterface $request): string {
         return $this->getScheme($request).'://'.$request->getUri()->getAuthority();
     }

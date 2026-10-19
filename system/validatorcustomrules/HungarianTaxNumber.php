@@ -17,7 +17,7 @@ final class HungarianTaxNumber extends Simple {
             return false;
         }
 
-        // the 8th digit is a check digit over the first seven
+        // 8th digit: check digit
         $taxNumber = current(explode('-', $input));
         $checkDigit = $taxNumber % 10;
 

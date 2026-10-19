@@ -1,14 +1,5 @@
 <?php
-/**
- * Helpers
- *
- * Every *Helper.php class in system/helpers/ (system\helpers namespace) and
- * app/helpers/ (app\helpers namespace) is registered automatically, keyed by
- * its lowercased name without the "Helper" suffix (MailHelper -> $this->helper->mail).
- * App helpers are loaded last, so an app helper with the same name overrides
- * the system one. Every helper receives the container in its constructor
- * (helpers without a constructor simply ignore it).
- */
+/** Registers every *Helper.php (system/helpers, then app/helpers) as $this->helper->name. */
 $container->set('helper', function(\Psr\Container\ContainerInterface $container) {
     $helpers = new \stdClass;
 

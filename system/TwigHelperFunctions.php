@@ -40,11 +40,7 @@ final class TwigHelperFunctions {
         9 => 'szeptember', 10 => 'október', 11 => 'november', 12 => 'december',
     ];
 
-    /**
-     * Hungarian long date (e.g. "2026. május 1.") - the built-in Twig `date`
-     * filter is based on PHP date(), which has no localized month names
-     * without the intl extension.
-     */
+    /** Hungarian long date, e.g. "2026. május 1." */
     public function hungarianDate($date): string {
         if (empty($date)) {
             return '';
@@ -56,10 +52,7 @@ final class TwigHelperFunctions {
         return $dateTime->format('Y').'. '.$month.' '.$dateTime->format('j').'.';
     }
 
-    /**
-     * Hungarian relative time (e.g. "3 órája", "tegnap") for dates within a
-     * week; older dates fall back to hungarianDate().
-     */
+    /** Hungarian relative time within a week, older dates fall back to hungarianDate(). */
     public function relativeDate($date): string {
         if (empty($date)) {
             return '';

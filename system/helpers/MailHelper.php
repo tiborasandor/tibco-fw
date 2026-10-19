@@ -5,15 +5,7 @@ namespace system\helpers;
 
 use PHPMailer\PHPMailer\PHPMailer;
 
-/**
- * Sends e-mail over SMTP with PHPMailer. Connection and sender come from
- * settings.php (system.mail): host, port, username/password (optional -
- * without a username no SMTP auth is attempted, e.g. for an internal relay),
- * secure ('tls'/'ssl'/null), from_email, from_name.
- *
- * On failure PHPMailer's own \PHPMailer\PHPMailer\Exception is thrown - the
- * caller catches and logs it.
- */
+/** SMTP mail via PHPMailer, settings: system.mail (no username = no SMTP auth). */
 class MailHelper {
 
     private array $settings;
@@ -23,12 +15,9 @@ class MailHelper {
     }
 
     /**
-     * @param array<string,string> $headers Extra headers (e.g. List-Unsubscribe) - spam
-     *   filters read a lot of signals from headers like these, not only from the body.
-     *   Raw headers only: a "Bcc" put here would be visible to every recipient, use $bcc.
-     * @param string[] $cc  CC addresses (real SMTP-level CC, shown in the Cc header).
-     * @param string[] $bcc BCC addresses (real SMTP-level BCC: added only as RCPT TO,
-     *   they don't appear in any header, the other recipients can't see them).
+     * @param array<string,string> $headers Raw extra headers (not for Bcc, use $bcc)
+     * @param string[] $cc
+     * @param string[] $bcc Not visible to the other recipients
      */
     public function send(
         string $to,

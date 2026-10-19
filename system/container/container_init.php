@@ -1,7 +1,5 @@
 <?php
-/**
- * Container sets
- */
+
 $container = $app->getContainer();
 
 foreach ([

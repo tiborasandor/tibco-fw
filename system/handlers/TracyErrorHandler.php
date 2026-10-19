@@ -73,11 +73,7 @@ final class TracyErrorHandler implements ErrorHandlerInterface {
         return $response->withHeader('Content-Type', 'application/json');
     }
 
-    /**
-     * HTML error page for browser requests: app/resources/templates/error.twig
-     * if the project has one (variables: status, message), otherwise - or if
-     * rendering it fails too - a minimal built-in page.
-     */
+    /** HTML error page: app/resources/templates/error.twig if present, otherwise a built-in one. */
     private function renderHtml(int $statusCode, string $message): string {
         if ($this->view !== null) {
             try {

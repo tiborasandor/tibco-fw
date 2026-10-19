@@ -5,14 +5,7 @@ namespace system;
 
 class Action extends Core {
 
-    /**
-     * Logs a caught exception with context (route, user, IP), so errors
-     * swallowed in an action's catch block don't disappear without a trace.
-     * The user id is read from the request's 'user' attribute (if an auth
-     * middleware sets one). Project-wide extra context (e.g. a tenant/company
-     * id) can be put into the request's 'logContext' attribute (an array) by a
-     * middleware; per-call extra context can be passed in $context.
-     */
+    /** Logs a caught exception with route, user and IP context. */
     protected function logException(\Throwable $th, \Psr\Http\Message\ServerRequestInterface $request, string $level = 'warning', array $context = []): void {
         $loggedUser = $request->getAttribute('user');
         $requestContext = $request->getAttribute('logContext');
