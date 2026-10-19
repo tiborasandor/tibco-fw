@@ -1,10 +1,12 @@
 <?php
+$devMode = getenv('DEV_MODE') === false ? true : filter_var(getenv('DEV_MODE'), FILTER_VALIDATE_BOOLEAN);
+
 return [
     'system' => [
         'timezone' => 'Europe/Budapest',
         'locale' => 'hu_HU.utf8',
-        // csak akkor mutasson részletes hibát (stack trace) a válaszban, ha explicit be van kapcsolva
-        'debug' => filter_var(getenv('APP_DEBUG') ?: false, FILTER_VALIDATE_BOOLEAN),
+        'debug' => filter_var(getenv('APP_DEBUG'), FILTER_VALIDATE_BOOLEAN),
+        'dev_mode' => $devMode,
         'session' => [
             'name'          => 'tibco',
             'cache_expire'  => 0,
@@ -16,40 +18,33 @@ return [
             'log_dir' => LOG_DIR
         ],
         'csrf' => [
-            // route-nevek, amelyeknél nincs CSRF ellenőrzés (pl. külső webhook, API végpont)
             'exempt_routes' => [],
         ],
         'cron' => [
-            // ütemezett feladatok (bin/cron, a modulok schedule.php-ja); hogy a konténerben fut-e
-            // cron, azt a php-nginx CRON_COMMAND változója dönti el. Kikapcsolva a percenkénti
-            // futtatás semmit nem csinál, a kézi `php bin/cron run <job>` viszont működik
             'enabled' => true,
-            // az utolsó futások nyilvántartása (php bin/cron list)
             'state_file' => LOG_DIR.DS.'cron'.DS.'state.json',
         ],
         'twig' => [
             'template_dir' => TEMPLATES_DIR,
-            'cache' => false,
+            'cache' => !$devMode,
             'cache_dir' => CACHE_DIR.DS.'twig'
         ],
         'mail' => [
-            // SMTP kapcsolat a $this->helper->mail-hez (system/helpers/MailHelper.php);
-            // username nélkül nincs SMTP hitelesítés (pl. belső relay esetén)
-            'host'       => getenv('SMTP_HOST') ?: 'localhost',
-            'port'       => (int) (getenv('SMTP_PORT') ?: 25),
+            'host'       => getenv('SMTP_HOST') ?: null,
+            'port'       => (int) getenv('SMTP_PORT') ?: null,
             'username'   => getenv('SMTP_USERNAME') ?: null,
             'password'   => getenv('SMTP_PASSWORD') ?: null,
             'secure'     => getenv('SMTP_SECURE') ?: null,
             'from_email' => getenv('SMTP_FROM_EMAIL') ?: null,
-            'from_name'  => getenv('SMTP_FROM_NAME') ?: '',
+            'from_name'  => getenv('SMTP_FROM_NAME') ?: null,
         ],
         'database' => [
             'testdb' => [
                 'driver' => 'mysql',
-                'host' => getenv('DB_HOST') ?: 'hostname',
-                'database' => getenv('DB_DATABASE') ?: 'db_name',
-                'username' => getenv('DB_USERNAME') ?: 'db_user',
-                'password' => getenv('DB_PASSWORD') ?: 'db_pass',
+                'host' => getenv('DB_HOST') ?: null,
+                'database' => getenv('DB_DATABASE') ?: null,
+                'username' => getenv('DB_USERNAME') ?: null,
+                'password' => getenv('DB_PASSWORD') ?: null,
                 'charset'   => 'utf8',
                 'collation' => 'utf8_general_ci',
                 'prefix'    => '',
@@ -58,7 +53,6 @@ return [
     ],
     'middlewares' => [
         'RequestLogMiddleware' => ['enabled' => true, 'weight' => 0],
-        // példa: sessionben tárolt user + route-védelem (app/middlewares/AuthMiddleware.php)
         'AuthMiddleware' => [
             'enabled' => true,
             'weight' => 1,
